@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GCRent</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --cream:#FAF8F5;--sand:#EDE5D8;--bronze:#B07D4E;--rust:#8C4A2F;
+      --dark:#18120C;--mid:#5C4A3A;--light:#F2EDE5;--green:#3D7A5C;
+      --red:#B83232;--gold:#C9963A;--blue:#2A5F8A;--purple:#6B4C9A;--teal:#2A7A7A;
+    }
+    body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--dark);font-size:14px}
+    #root{min-height:100vh}
+    .loading{display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:'Cormorant Garamond',serif;font-size:1.5rem;color:var(--bronze)}
+  </style>
+</head>
+<body>
+<div id="root"><div class="loading">Cargando GCRent…</div></div>
+
+<script>
+  // ── Supabase client ────────────────────────────────────────────────────────
+  const SUPA_URL = "https://jwckpmzkbhktlvywfnlo.supabase.co";
+  const SUPA_KEY = "sb_publishable_3VYv9pN7WNM7W1IhFLEaMA__XFOXaGK";
+  const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+</script>
+
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+// ─── EQUIPOS (catálogo fijo) ──────────────────────────────────────────────────
+const EQUIPOS = [
+  { id:1,  nombre:"Cavitadora Ultrasónica",   emoji:"〰️", desc:"Reducción localizada de grasa. 40kHz.",        precio:3500 },
+  { id:2,  nombre:"Radiofrecuencia Facial",    emoji:"✨",  desc:"Rejuvenecimiento y lifting.",                  precio:2800 },
+  { id:3,  nombre:"Presoterapia Completa",     emoji:"💆", desc:"Drenaje linfático con botas neumáticas.",      precio:1800 },
+  { id:4,  nombre:"Láser Diodo Depilación",    emoji:"💡", desc:"Depilación permanente. 808nm.",                precio:5000 },
+  { id:5,  nombre:"Microdermoabrasión",        emoji:"🌸", desc:"Exfoliación profunda con corindón.",           precio:1500 },
+  { id:6,  nombre:"Oxigenoterapia Facial",     emoji:"💨", desc:"Hidratación profunda con oxígeno puro.",       precio:2200 },
+  { id:7,  nombre:"Dermapen Profesional",      emoji:"🪡", desc:"Microagujas para rejuvenecimiento.",           precio:2600 },
+  { id:8,  nombre:"Luz Pulsada IPL",           emoji:"🔆", desc:"Manchas, rosácea y fotoenvejecimiento.",       precio:4200 },
+  { id:9,  nombre:"Criolipolisis",             emoji:"❄️", desc:"Eliminación de grasa por frío controlado.",    precio:6000 },
+  { id:10, nombre:"Electroestimulación EMS",   emoji:"⚡", desc:"Tonificación muscular profunda.",              precio:1600 },
+  { id:11, nombre:"Vacuum + Rodillo Corporal", emoji:"🌀", desc:"Masaje mecánico anticelulítico.",              precio:1900 },
+  { id:12, nombre:"Hifu Ultrasonido Focal",    emoji:"🎯", desc:"Lifting sin cirugía.",                         precio:7500 },
+  { id:13, nombre:"Peeling Ultrasónico",       emoji:"🔊", desc:"Limpieza profunda sin dolor.",                 precio:1400 },
+  { id:14, nombre:"Ozonoterapia Facial",       emoji:"🫧", desc:"Desinfección y regeneración con ozono.",       precio:1700 },
+  { id:15, nombre:"Lipolaser Corporal",        emoji:"🔴", desc:"Reducción de medidas con láser frío.",         precio:3800 },
+];
+
+const EQUIPO_COLORS = {
+  1:"#E07B54",2:"#7B9E87",3:"#5B8DB8",4:"#C4A35A",5:"#B56576",
+  6:"#6B8FAB",7:"#8B7355",8:"#7E9B6E",9:"#9B6B8A",10:"#5B8A8A",
+  11:"#C47C5A",12:"#7B6B9E",13:"#8A6B5B",14:"#6B9B7E",15:"#9E6B6B",
+};
+
+const TARIFA_BASE = 2500;
+const hoy = new Date(); hoy.setHours(0,0,0,0);
+const fmt = d => { const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+const addD = (d,n) => { const r=new Date(d); r.setDate(r.getDate()+n); return r; };
+const addM = (d,n) => { const r=new Date(d); r.setMonth(r.getMonth()+n); return r; };
+const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const DIAS  = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const getLunes = d => { const r=new Date(d); r.setDate(r.getDate()-(r.getDay()||7)+1); r.setHours(0,0,0,0); return r; };
+const semLabel = l => { const d=addD(l,6); return `${l.getDate()} ${MESES[l.getMonth()].slice(0,3)} – ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)}`; };
+const mesKey  = d => `${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}`;
+const estadoLabel = e => ({aceptada:"Aceptada",seña:"Con seña",activo:"Activo",completado:"Completado",cancelado:"Cancelado"})[e]||e;
+const genId = () => Date.now() + Math.floor(Math.random()*1000);
+
+const generarRecurrencias = (base, rep, cant=12) => {
+  if (!rep||rep==="none") return [];
+  return Array.from({length:cant},(_,i)=>{
+    let f;
+    if      (rep==="diario")    f=fmt(addD(base.fecha,i+1));
+    else if (rep==="semanal")   f=fmt(addD(base.fecha,(i+1)*7));
+    else if (rep==="quincenal") f=fmt(addD(base.fecha,(i+1)*14));
+    else if (rep==="mensual")   f=fmt(addM(base.fecha,i+1));
+    return {...base, id:genId(), fecha:f, senia:0, estado:"aceptada", esRecurrencia:true, serieId:base.id};
+  });
+};
+
+// ── helpers ────────────────────────────────────────────────────────────────────
+const getResColors = (r, combos) => {
+  if (r.comboId) { const c=combos.find(x=>x.id===r.comboId); return c?c.equipoIds.map(id=>EQUIPO_COLORS[id]||"#888"):["#888"]; }
+  return r.equipoId?[EQUIPO_COLORS[r.equipoId]||"#888"]:["#888"];
+};
+const itemLabel = (r, combos) => {
+  if (r.comboId) { const c=combos?.find(x=>x.id===r.comboId); return c?`📦 ${c.nombre}`:"Combo"; }
+  const e=EQUIPOS.find(x=>x.id===r.equipoId); return e?`${e.emoji} ${e.nombre}`:"—";
+};
+
+// ── Supabase helpers ───────────────────────────────────────────────────────────
+const toDb = r => ({
+  id: r.id,
+  cliente_nombre: r.clienteNombre,
+  cliente_email:  r.clienteEmail,
+  cliente_tel:    r.clienteTel||"",
+  equipo_id:      r.equipoId||null,
+  combo_id:       r.comboId||null,
+  fecha:          r.fecha,
+  hora_entrega:   r.horaEntrega||"",
+  hora_retiro:    r.horaRetiro||"",
+  estado:         r.estado,
+  monto:          r.monto,
+  senia:          r.senia||0,
+  direccion:      r.direccion||"",
+  tarifa_transporte: r.tarifaTransporte||TARIFA_BASE,
+  repeticion:     r.repeticion||"none",
+  es_recurrencia: r.esRecurrencia||false,
+  serie_id:       r.serieId||null,
+  cancel_tipo:    r.cancelTipo||null,
+});
+
+const fromDb = r => ({
+  id:             r.id,
+  clienteNombre:  r.cliente_nombre,
+  clienteEmail:   r.cliente_email,
+  clienteTel:     r.cliente_tel,
+  equipoId:       r.equipo_id,
+  comboId:        r.combo_id,
+  fecha:          r.fecha,
+  horaEntrega:    r.hora_entrega,
+  horaRetiro:     r.hora_retiro,
+  estado:         r.estado,
+  monto:          r.monto,
+  senia:          r.senia,
+  direccion:      r.direccion,
+  tarifaTransporte: r.tarifa_transporte,
+  repeticion:     r.repeticion,
+  esRecurrencia:  r.es_recurrencia,
+  serieId:        r.serie_id,
+  cancelTipo:     r.cancel_tipo,
+});
+
+const comboToDb = c => ({
+  id: c.id, nombre: c.nombre, descripcion: c.desc||"", precio: c.precio, equipo_ids: c.equipoIds
+});
+const comboFromDb = c => ({
+  id: c.id, nombre: c.nombre, desc: c.descripcion, precio: c.precio, equipoIds: c.equipo_ids||[]
+});
+const promoToDb = p => ({
+  id: p.id, equipo_id: p.equipoId, titulo: p.titulo, descuento: p.descuento, activa: p.activa, notificada: p.notificada
+});
+const promoFromDb = p => ({
+  id: p.id, equipoId: p.equipo_id, titulo: p.titulo, descuento: p.descuento, activa: p.activa, notificada: p.notificada
+});
+
+// ─── CLOSE BTN ────────────────────────────────────────────────────────────────
+const CloseBtn = ({onClose}) => (
+  <button onClick={onClose} style={{background:"none",border:"none",color:"var(--cream)",cursor:"pointer",fontSize:"1.1rem",lineHeight:1}}>✕</button>
+);
+
+// ─── FORM RESERVA ─────────────────────────────────────────────────────────────
+function FormReserva({titulo, form, fv, promos, combos, onSubmit, onCancel, submitLabel="Guardar"}) {
+  const promoActiva = !form.usarCombo ? promos.find(p=>p.activa&&p.equipoId===+form.equipoId) : null;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={onCancel}>
+      <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:540,boxShadow:"0 24px 80px rgba(0,0,0,.3)",overflow:"hidden",maxHeight:"94vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{background:"var(--dark)",color:"var(--cream)",padding:".78rem 1.1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:10}}>
+          {titulo} <CloseBtn onClose={onCancel}/>
+        </div>
+        <div style={{padding:"1.1rem"}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".85rem"}}>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Nombre clienta</label><input value={form.clienteNombre} onChange={e=>fv("clienteNombre",e.target.value)} placeholder="María González" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Email</label><input type="email" value={form.clienteEmail} onChange={e=>fv("clienteEmail",e.target.value)} placeholder="mail@mail.com" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          </div>
+          <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Teléfono</label><input value={form.clienteTel} onChange={e=>fv("clienteTel",e.target.value)} placeholder="5491122334455" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          <div style={{marginBottom:".75rem"}}>
+            <label style={{display:"flex",alignItems:"center",gap:".4rem",fontSize:".82rem",color:"var(--dark)",cursor:"pointer"}}>
+              <input type="checkbox" checked={form.usarCombo} onChange={e=>fv("usarCombo",e.target.checked)}/> Reservar un combo de equipos
+            </label>
+          </div>
+          {form.usarCombo
+            ? <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Combo</label>
+                <select value={form.comboId} onChange={e=>fv("comboId",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}>
+                  <option value="">Seleccioná combo</option>
+                  {combos.map(c=><option key={c.id} value={c.id}>📦 {c.nombre} — ${c.precio.toLocaleString()}</option>)}
+                </select>
+              </div>
+            : <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Equipo</label>
+                <select value={form.equipoId} onChange={e=>fv("equipoId",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}>
+                  {EQUIPOS.map(e=>{const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);return <option key={e.id} value={e.id}>{e.emoji} {e.nombre} — ${p?Math.round(e.precio*(1-p.descuento/100)).toLocaleString():e.precio.toLocaleString()}{p?` (-${p.descuento}% PROMO)`:""}</option>;})}
+                </select>
+              </div>
+          }
+          <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Dirección</label><input value={form.direccion} onChange={e=>fv("direccion",e.target.value)} placeholder="Av. Corrientes 1234" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".85rem"}}>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>🟢 Hora entrega</label><input type="time" value={form.horaEntrega} onChange={e=>fv("horaEntrega",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>🔴 Hora retiro</label><input type="time" value={form.horaRetiro} onChange={e=>fv("horaRetiro",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".85rem"}}>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Seña {promoActiva?"(mín 30%)":"(opcional)"}</label><input type="number" value={form.senia} onChange={e=>fv("senia",e.target.value)} placeholder="0" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+            <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>💙 Tarifa transporte</label><input type="number" value={form.tarifaTransporte} onChange={e=>fv("tarifaTransporte",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+          </div>
+          <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>↻ Repetición</label>
+            <select value={form.repeticion} onChange={e=>fv("repeticion",e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}>
+              <option value="none">Sin repetición</option>
+              <option value="semanal">Semanal (12 semanas)</option>
+              <option value="quincenal">Quincenal (12 quincenas)</option>
+              <option value="mensual">Mensual (12 meses)</option>
+            </select>
+          </div>
+          {promoActiva&&<div style={{background:"#EDE9FE",border:"1.5px solid var(--purple)",borderRadius:10,padding:".5rem .8rem",fontSize:".75rem",color:"#4C1D95",marginBottom:".5rem"}}>🎁 Promo activa — seña mínima 30% obligatoria</div>}
+        </div>
+        <div style={{padding:".78rem 1.1rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
+          <button onClick={onCancel} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
+          <button onClick={onSubmit} style={{padding:".4rem .85rem",borderRadius:8,border:"none",background:"var(--bronze)",color:"#fff",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600}}>{submitLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────────────
+function App() {
+  const [rol, setRol]         = useState(null);
+  const [seccion, setSeccion] = useState("agenda");
+  const [reservas, setReservas] = useState([]);
+  const [combos, setCombos]   = useState([]);
+  const [promos, setPromos]   = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [tarifaBase, setTarifaBase] = useState(TARIFA_BASE);
+  const [calMes, setCalMes]   = useState({y:hoy.getFullYear(),m:hoy.getMonth()});
+  const [selDay, setSelDay]   = useState(fmt(hoy));
+  const [modal, setModal]     = useState(null);
+  const [editRes, setEditRes] = useState(null);
+  const [pagoInfo, setPagoInfo] = useState(null);
+  const [toast, setToast]     = useState(null);
+  const [semOff, setSemOff]   = useState(0);
+  const [filtroC, setFiltroC] = useState("");
+  const [filtroE, setFiltroE] = useState("");
+  const [filtroEst, setFiltroEst] = useState("");
+  const [filterMes, setFilterMes] = useState("");
+  const [dupFecha, setDupFecha] = useState("");
+  const [comboForm, setComboForm] = useState({nombre:"",equipoIds:[],desc:"",precio:""});
+  const [promoForm, setPromoForm] = useState({equipoId:"1",titulo:"",descuento:"10"});
+  const clienteEmail = "maria@mail.com";
+
+  const FDEF = {clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",senia:"",direccion:"",tarifaTransporte:String(TARIFA_BASE),repeticion:"none"};
+  const [form, setForm] = useState(FDEF);
+  const fv = useCallback((k,v) => setForm(f=>({...f,[k]:v})), []);
+
+  const showToast = m => { setToast(m); setTimeout(()=>setToast(null),3200); };
+
+  // ── Cargar datos desde Supabase ────────────────────────────────────────────
+  const cargarDatos = async () => {
+    setLoading(true);
+    const [resR, resC, resP] = await Promise.all([
+      supa.from("reservas").select("*").order("fecha"),
+      supa.from("combos").select("*"),
+      supa.from("promos").select("*"),
+    ]);
+    if (resR.data) setReservas(resR.data.map(fromDb));
+    if (resC.data) setCombos(resC.data.map(comboFromDb));
+    if (resP.data) setPromos(resP.data.map(promoFromDb));
+    setLoading(false);
+  };
+
+  useEffect(()=>{ if(rol) cargarDatos(); },[rol]);
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+  const eq  = id => EQUIPOS.find(e=>e.id===+id);
+  const cmb = id => combos.find(c=>c.id===id);
+  const IL  = r  => itemLabel(r, combos);
+  const clientes = useMemo(()=>[...new Map(reservas.map(r=>[r.clienteEmail,r.clienteNombre])).entries()],[reservas]);
+
+  const calcMonto = (equipoId, comboId, promo) => {
+    if (comboId) { const c=cmb(comboId); return c?.precio||0; }
+    const e=eq(equipoId); if(!e) return 0;
+    return promo ? Math.round(e.precio*(1-promo.descuento/100)) : e.precio;
+  };
+
+  // ── Guardar reserva ────────────────────────────────────────────────────────
+  const guardarReserva = async () => {
+    if (!form.clienteNombre||!form.fecha){ showToast("⚠️ Completá nombre y fecha"); return; }
+    const promo = !form.usarCombo ? promos.find(p=>p.activa&&p.equipoId===+form.equipoId) : null;
+    const monto = calcMonto(+form.equipoId, form.usarCombo?form.comboId:null, promo);
+    const seniaVal = form.senia===""||form.senia===undefined ? 0 : +form.senia;
+    if (promo && seniaVal < Math.round(monto*.3)){ showToast(`⚠️ Promo requiere seña mínima $${Math.round(monto*.3).toLocaleString()}`); return; }
+    const base = {
+      id:genId(), clienteNombre:form.clienteNombre, clienteEmail:form.clienteEmail, clienteTel:form.clienteTel,
+      equipoId:form.usarCombo?null:+form.equipoId, comboId:form.usarCombo?form.comboId:null,
+      fecha:form.fecha, horaEntrega:form.horaEntrega, horaRetiro:form.horaRetiro,
+      estado:seniaVal>0?"seña":"aceptada", monto, senia:seniaVal,
+      direccion:form.direccion, tarifaTransporte:+form.tarifaTransporte||tarifaBase,
+      repeticion:form.repeticion, esRecurrencia:false, serieId:null,
+    };
+    const recs = generarRecurrencias(base, form.repeticion, 12);
+    const todas = [base, ...recs];
+    const {error} = await supa.from("reservas").insert(todas.map(toDb));
+    if (error){ showToast("❌ Error al guardar: "+error.message); return; }
+    setReservas(r=>[...r,...todas]);
+    setModal(null); setForm(FDEF);
+    showToast(`✅ Reserva guardada${recs.length>0?` + ${recs.length} recurrencias`:""}`);
+  };
+
+  // ── Editar reserva ─────────────────────────────────────────────────────────
+  const abrirEdicion = r => {
+    setEditRes(r);
+    setForm({
+      clienteNombre:r.clienteNombre, clienteEmail:r.clienteEmail, clienteTel:r.clienteTel||"",
+      equipoId:String(r.equipoId||1), comboId:r.comboId||"", usarCombo:!!r.comboId,
+      fecha:r.fecha, horaEntrega:r.horaEntrega||"", horaRetiro:r.horaRetiro||"",
+      senia:String(r.senia), direccion:r.direccion||"",
+      tarifaTransporte:String(r.tarifaTransporte||tarifaBase), repeticion:r.repeticion||"none",
+    });
+    setModal("editar");
+  };
+
+  const guardarEdicion = async () => {
+    if (!form.fecha){ showToast("⚠️ Fecha requerida"); return; }
+    const promo = !form.usarCombo ? promos.find(p=>p.activa&&p.equipoId===+form.equipoId) : null;
+    const monto = calcMonto(+form.equipoId, form.usarCombo?form.comboId:null, promo);
+    const updated = {
+      ...editRes,
+      clienteNombre:form.clienteNombre, clienteEmail:form.clienteEmail, clienteTel:form.clienteTel,
+      equipoId:form.usarCombo?null:+form.equipoId, comboId:form.usarCombo?form.comboId:null,
+      fecha:form.fecha, horaEntrega:form.horaEntrega, horaRetiro:form.horaRetiro, monto,
+      senia:+form.senia||editRes.senia, direccion:form.direccion,
+      tarifaTransporte:+form.tarifaTransporte||tarifaBase, repeticion:form.repeticion,
+    };
+    const {error} = await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
+    if (error){ showToast("❌ Error: "+error.message); return; }
+    setReservas(rs=>rs.map(x=>x.id===editRes.id?updated:x));
+    setModal(null); setEditRes(null); setForm(FDEF);
+    showToast("✅ Reserva actualizada");
+  };
+
+  // ── Cambiar estado ─────────────────────────────────────────────────────────
+  const cambiarEstado = async (id, nuevoEstado, extra={}) => {
+    const {error} = await supa.from("reservas").update({estado:nuevoEstado,...extra}).eq("id",id);
+    if (error){ showToast("❌ Error: "+error.message); return; }
+    setReservas(rs=>rs.map(r=>r.id===id?{...r,estado:nuevoEstado,...extra}:r));
+  };
+
+  // ── Cancelar ───────────────────────────────────────────────────────────────
+  const cancelarReserva = async (id, tipo) => {
+    await cambiarEstado(id,"cancelado",{cancelTipo:tipo});
+    setModal(null);
+    showToast("❌ Reserva cancelada");
+  };
+
+  // ── Pago ───────────────────────────────────────────────────────────────────
+  const procesarPago = async () => {
+    if (pagoInfo.tipo==="senia"){
+      const senia=Math.round(pagoInfo.monto*.3);
+      await supa.from("reservas").update({estado:"seña",senia}).eq("id",pagoInfo.id);
+      setReservas(rs=>rs.map(r=>r.id===pagoInfo.id?{...r,estado:"seña",senia}:r));
+      showToast("💳 Seña registrada");
+    } else {
+      await cambiarEstado(pagoInfo.id,"completado");
+      showToast("✅ Pago final registrado");
+    }
+    setModal(null);
+  };
+
+  // ── Duplicar ───────────────────────────────────────────────────────────────
+  const duplicarReserva = async base => {
+    if (!dupFecha){ showToast("⚠️ Seleccioná fecha"); return; }
+    const nueva = {...base,id:genId(),fecha:dupFecha,estado:"aceptada",senia:0,esRecurrencia:false,serieId:null};
+    const {error} = await supa.from("reservas").insert(toDb(nueva));
+    if (error){ showToast("❌ Error: "+error.message); return; }
+    setReservas(rs=>[...rs,nueva]);
+    setDupFecha(""); setModal(null);
+    showToast("📋 Reserva duplicada");
+  };
+
+  // ── Combos ─────────────────────────────────────────────────────────────────
+  const guardarCombo = async () => {
+    if (!comboForm.nombre||comboForm.equipoIds.length<2){ showToast("⚠️ Nombre y al menos 2 equipos"); return; }
+    const nuevo = {id:`c${genId()}`,nombre:comboForm.nombre,desc:comboForm.desc,precio:+comboForm.precio||0,equipoIds:comboForm.equipoIds.map(Number)};
+    const {error} = await supa.from("combos").insert(comboToDb(nuevo));
+    if (error){ showToast("❌ Error: "+error.message); return; }
+    setCombos(c=>[...c,nuevo]);
+    setModal(null); setComboForm({nombre:"",equipoIds:[],desc:"",precio:""});
+    showToast("📦 Combo creado");
+  };
+
+  // ── Promos ─────────────────────────────────────────────────────────────────
+  const crearPromo = async () => {
+    if (!promoForm.titulo){ showToast("⚠️ Título requerido"); return; }
+    const nueva = {id:genId(),equipoId:+promoForm.equipoId,titulo:promoForm.titulo,descuento:+promoForm.descuento,activa:true,notificada:false};
+    const {error} = await supa.from("promos").insert(promoToDb(nueva));
+    if (error){ showToast("❌ Error: "+error.message); return; }
+    setPromos(p=>[...p,nueva]);
+    setModal(null); setPromoForm({equipoId:"1",titulo:"",descuento:"10"});
+    showToast("🎉 Promo creada");
+  };
+
+  const togglePromo = async (p) => {
+    const {error} = await supa.from("promos").update({activa:!p.activa}).eq("id",p.id);
+    if (error){ showToast("❌ Error"); return; }
+    setPromos(ps=>ps.map(x=>x.id===p.id?{...x,activa:!x.activa}:x));
+  };
+
+  // ── Métricas ───────────────────────────────────────────────────────────────
+  const resActivas = reservas.filter(r=>!["cancelado","completado"].includes(r.estado));
+  const resComp    = reservas.filter(r=>r.estado==="completado");
+  const resCan     = reservas.filter(r=>r.estado==="cancelado");
+  const ingresos   = resComp.reduce((a,r)=>a+r.monto,0);
+  const senias     = reservas.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+r.senia,0);
+  const hace14     = fmt(addD(hoy,-14));
+  const equiposOciosos = EQUIPOS.filter(e=>!reservas.some(r=>r.equipoId===e.id&&r.fecha>=hace14&&r.estado!=="cancelado"));
+
+  const rankingClientes = useMemo(()=>{
+    const m={};
+    reservas.filter(r=>r.estado!=="cancelado").forEach(r=>{
+      if(!m[r.clienteEmail])m[r.clienteEmail]={nombre:r.clienteNombre,email:r.clienteEmail,cant:0,monto:0};
+      m[r.clienteEmail].cant++; m[r.clienteEmail].monto+=r.monto;
+    });
+    return Object.values(m).sort((a,b)=>b.cant-a.cant);
+  },[reservas]);
+
+  // ── Filtros ────────────────────────────────────────────────────────────────
+  const reservasFiltradas = useMemo(()=>{
+    let rs=[...reservas];
+    if(filtroC)   rs=rs.filter(r=>r.clienteEmail===filtroC);
+    if(filtroE)   rs=rs.filter(r=>r.equipoId===+filtroE);
+    if(filtroEst) rs=rs.filter(r=>r.estado===filtroEst);
+    if(filterMes) rs=rs.filter(r=>mesKey(r.fecha)===filterMes);
+    return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  },[reservas,filtroC,filtroE,filtroEst,filterMes]);
+
+  // ── Transportista ──────────────────────────────────────────────────────────
+  const lunesSem=addD(getLunes(hoy),semOff*7), finSem=addD(lunesSem,6);
+  const resSem=reservas.filter(r=>{const d=new Date(r.fecha+"T12:00");return d>=lunesSem&&d<=finSem&&r.estado!=="cancelado";});
+  const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte||tarifaBase),0);
+
+  const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
+  const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>a.horaEntrega.localeCompare(b.horaEntrega)),[reservas,selDay]);
+
+  // ── Excel ──────────────────────────────────────────────────────────────────
+  const exportarExcel = () => {
+    const wb=window.XLSX.utils.book_new();
+    const wsR=window.XLSX.utils.aoa_to_sheet([
+      ["GCRent — Reservas"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],
+      ["ID","Cliente","Email","Equipo","Fecha","Entrega","Retiro","Monto","Seña","Saldo","Transporte","Estado"],
+      ...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteEmail,IL(r),r.fecha,r.horaEntrega,r.horaRetiro,r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||tarifaBase,estadoLabel(r.estado)]),
+    ]);
+    window.XLSX.utils.book_append_sheet(wb,wsR,"Reservas");
+    window.XLSX.writeFile(wb,`GCRent_${fmt(hoy).replace(/-/g,"")}.xlsx`);
+    showToast("📥 Excel descargado");
+  };
+
+  // ── Calendario ─────────────────────────────────────────────────────────────
+  const CalendarView = () => {
+    const diasEnMes = () => {
+      const {y,m}=calMes, p=new Date(y,m,1), u=new Date(y,m+1,0), c=[];
+      for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);c.push({date:fmt(d),day:d.getDate(),other:true});}
+      for(let d=1;d<=u.getDate();d++) c.push({date:fmt(new Date(y,m,d)),day:d,other:false});
+      while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}
+      return c;
+    };
+    const fmtHoy=fmt(hoy);
+    const dotsForDay=date=>{
+      const rs=reservas.filter(r=>r.fecha===date&&r.estado!=="cancelado");
+      const colors=[];
+      rs.forEach(r=>getResColors(r,combos).forEach(c=>colors.push(c)));
+      return colors.slice(0,8);
+    };
+    return (
+      <div style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--sand)"}}>
+        <div style={{background:"var(--dark)",color:"var(--cream)",padding:".65rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <button onClick={()=>setCalMes(c=>({y:c.m===0?c.y-1:c.y,m:c.m===0?11:c.m-1}))} style={{background:"none",border:"1px solid #555",color:"#ccc",borderRadius:6,padding:".2rem .5rem",cursor:"pointer"}}>‹</button>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem"}}>{MESES[calMes.m]} {calMes.y}</span>
+          <button onClick={()=>setCalMes(c=>({y:c.m===11?c.y+1:c.y,m:c.m===11?0:c.m+1}))} style={{background:"none",border:"1px solid #555",color:"#ccc",borderRadius:6,padding:".2rem .5rem",cursor:"pointer"}}>›</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--sand)"}}>
+          {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".58rem",fontWeight:700,padding:".3rem 0",textTransform:"uppercase",letterSpacing:".08em"}}>{d}</div>)}
+          {diasEnMes().map((c,i)=>{
+            const dots=dotsForDay(c.date);
+            const isToday=c.date===fmtHoy, isSel=c.date===selDay;
+            return (
+              <div key={i} onClick={()=>setSelDay(c.date)} style={{background:isSel?"rgba(176,125,78,.12)":isToday?"rgba(176,125,78,.08)":"#fff",minHeight:72,padding:".3rem .28rem",cursor:"pointer",opacity:c.other?.3:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
+                <div style={{fontSize:".75rem",fontWeight:600,width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",background:isToday?"var(--bronze)":"transparent",color:isToday?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:2,marginTop:2}}>{dots.map((col,j)=><div key={j} style={{width:7,height:7,borderRadius:"50%",background:col}}/>)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── ROLES ────────────────────────────────────────────────────────────────
+  if (!rol) return (
+    <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
+      <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.4rem 2rem",width:"100%",maxWidth:380,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
+        <div style={{fontSize:".75rem",color:"var(--mid)",textAlign:"center",marginBottom:"1.8rem",letterSpacing:".1em",textTransform:"uppercase"}}>Gestión de alquiler de equipos</div>
+        {[
+          {key:"admin",label:"Administradora",icon:"👩‍💼",desc:"Gestión completa"},
+          {key:"transportista",label:"Transportista",icon:"🚚",desc:"Entregas y cobros semanales"},
+          {key:"cliente",label:"Cliente",icon:"👤",desc:"Reservas y disponibilidad"},
+        ].map(r=>(
+          <button key={r.key} onClick={()=>{setRol(r.key);setSeccion(r.key==="transportista"?"logistica":r.key==="cliente"?"calendario_cliente":"agenda");}} style={{display:"block",width:"100%",padding:".82rem 1.1rem",marginBottom:".65rem",borderRadius:12,border:"1.5px solid var(--sand)",background:"var(--cream)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".88rem",fontWeight:600,color:"var(--dark)",textAlign:"left"}}>
+            <span style={{fontSize:"1.1rem",marginRight:".5rem"}}>{r.icon}</span>{r.label}
+            <span style={{display:"block",fontSize:".68rem",fontWeight:400,color:"var(--mid)",marginTop:".06rem",marginLeft:"1.7rem"}}>{r.desc}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) return <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:"var(--bronze)"}}>Cargando datos…</div>;
+
+  const navItems = rol==="admin"
+    ? [{id:"agenda",l:"📅 Agenda"},{id:"calendario",l:"🗓 Calendario"},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"buscar",l:"🔍 Buscar"}]
+    : rol==="transportista"
+    ? [{id:"logistica",l:"🚚 Entregas"},{id:"semana",l:"💰 Mi semana"}]
+    : [{id:"calendario_cliente",l:"📅 Mi calendario"},{id:"buscar_cliente",l:"🔍 Mis reservas"}];
+
+  const btn = (label,onClick,color="var(--bronze)") => (
+    <button onClick={onClick} style={{display:"inline-flex",alignItems:"center",gap:".28rem",padding:".4rem .85rem",borderRadius:8,border:"none",background:color,color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>
+  );
+  const badge = (estado) => {
+    const colors={aceptada:"#DBEAFE::#1E3A5F",seña:"#FEF3CD::#7A5800",activo:"#D1FAE5::#064E3B",completado:"#E2E3E5::#383D41",cancelado:"#FEE2E2::#7F1D1D"};
+    const [bg,color]=(colors[estado]||"#eee::#333").split("::");
+    return <span style={{display:"inline-block",padding:".13rem .5rem",borderRadius:99,fontSize:".62rem",fontWeight:700,background:bg,color}}>{estadoLabel(estado)}</span>;
+  };
+
+  const TablaReservas = ({rs, acciones=true, mostrarCliente=true}) => (
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:".75rem"}}>
+        <thead><tr style={{background:"var(--light)"}}>
+          {mostrarCliente&&<th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Cliente</th>}
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Equipo</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Fecha</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Entrega</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Retiro</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Monto</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Seña</th>
+          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Estado</th>
+          {acciones&&<th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",letterSpacing:".07em",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Acciones</th>}
+        </tr></thead>
+        <tbody>
+          {rs.map(r=>(
+            <tr key={r.id} style={{background:r.estado==="cancelado"?"#FFF0F0":"#fff"}}>
+              {mostrarCliente&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}><strong>{r.clienteNombre}</strong></td>}
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".72rem"}}>{IL(r)}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".74rem"}}>{r.fecha}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".74rem"}}>{r.horaEntrega||"—"}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".74rem"}}>{r.horaRetiro||"—"}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontWeight:600}}>${r.monto.toLocaleString()}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",color:"var(--green)"}}>{r.senia>0?`$${r.senia.toLocaleString()}`:"—"}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{badge(r.estado)}</td>
+              {acciones&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>
+                <div style={{display:"flex",gap:".2rem",flexWrap:"wrap"}}>
+                  {r.estado==="aceptada"&&<button style={{padding:".14rem .4rem",fontSize:".62rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"seña",{senia:Math.round(r.monto*.3)})}>💳</button>}
+                  {["seña","activo"].includes(r.estado)&&<button style={{padding:".14rem .4rem",fontSize:".62rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"completado")}>✅</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".14rem .4rem",fontSize:".62rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>✏️</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".14rem .4rem",fontSize:".62rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".14rem .4rem",fontSize:".62rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>✕</button>}
+                </div>
+              </td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      {/* NAV */}
+      <nav style={{background:"var(--dark)",padding:"0 1rem",display:"flex",alignItems:"center",minHeight:52,position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)",gap:".05rem",flexWrap:"wrap"}}>
+        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.2rem",color:"var(--gold)",marginRight:"auto",letterSpacing:".1em"}}>GCRent</span>
+        {navItems.map(n=>(
+          <button key={n.id} onClick={()=>setSeccion(n.id)} style={{background:"none",border:"none",color:seccion===n.id?"var(--gold)":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".68rem",letterSpacing:".06em",textTransform:"uppercase",padding:".32rem .55rem",cursor:"pointer",borderBottom:seccion===n.id?"2px solid var(--gold)":"2px solid transparent",whiteSpace:"nowrap"}}>{n.l}</button>
+        ))}
+        <button onClick={()=>setRol(null)} style={{background:"none",border:"1px solid #444",color:"#888",fontSize:".65rem",padding:".18rem .48rem",borderRadius:5,cursor:"pointer",marginLeft:".4rem"}}>Salir</button>
+      </nav>
+
+      <main style={{flex:1,padding:"1rem 1.1rem",maxWidth:1180,margin:"0 auto",width:"100%"}}>
+
+        {/* ══ AGENDA ════════════════════════════════════════════════════════ */}
+        {seccion==="agenda"&&rol==="admin"&&(<>
+          {alertas.map(a=><div key={a.id} style={{background:"#FFFBEB",border:"1.5px solid var(--gold)",borderRadius:10,padding:".5rem .8rem",fontSize:".75rem",color:"#713F12",display:"flex",alignItems:"center",gap:".4rem",marginBottom:".5rem"}}>🔔 <strong>Mañana:</strong> {a.clienteNombre} — {IL(a)}</div>)}
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:".7rem"}}>
+            {btn("+ Nueva reserva",()=>{setForm(FDEF);setModal("nueva");},"var(--gold)")}
+          </div>
+          {reservas.length===0
+            ? <div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>No hay reservas aún. ¡Creá la primera!</div>
+            : <TablaReservas rs={[...reservas].sort((a,b)=>a.fecha.localeCompare(b.fecha))}/>
+          }
+        </>)}
+
+        {/* ══ CALENDARIO ════════════════════════════════════════════════════ */}
+        {seccion==="calendario"&&rol==="admin"&&(<>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🗓 Calendario</h2>
+          <CalendarView/>
+          {selDay&&(
+            <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".8rem",overflow:"hidden"}}>
+              <div style={{background:"var(--light)",padding:".6rem 1rem",fontWeight:700,fontSize:".82rem",borderBottom:"1px solid var(--sand)",display:"flex",justifyContent:"space-between"}}>
+                <span>Reservas del {selDay}</span>
+                <span style={{fontSize:".72rem",color:"var(--mid)"}}>{resDia.length} turno{resDia.length!==1?"s":""}</span>
+              </div>
+              {resDia.length===0
+                ? <div style={{padding:"1rem",textAlign:"center",color:"var(--mid)",fontSize:".8rem"}}>Sin turnos este día.</div>
+                : resDia.map(r=>(
+                  <div key={r.id} style={{padding:".55rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
+                    {getResColors(r,combos).map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:"50%",background:c}}/>)}
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:".82rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div>
+                      <div style={{fontSize:".72rem",color:"var(--mid)"}}>{IL(r)}</div>
+                    </div>
+                    {badge(r.estado)}
+                  </div>
+                ))
+              }
+            </div>
+          )}
+        </>)}
+
+        {/* ══ EQUIPOS ═══════════════════════════════════════════════════════ */}
+        {seccion==="equipos"&&rol==="admin"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem"}}>Catálogo</h2>
+            {btn("📦 Nuevo combo",()=>setModal("combo"),"var(--teal)")}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:".85rem"}}>
+            {EQUIPOS.map(e=>{
+              const ocio=equiposOciosos.find(x=>x.id===e.id);
+              return (
+                <div key={e.id} style={{background:"#fff",border:`1px solid ${ocio?"#FCA5A5":"var(--sand)"}`,borderRadius:12,overflow:"hidden"}}>
+                  <div style={{height:70,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.6rem",background:"linear-gradient(135deg,var(--sand),var(--bronze))",borderBottom:`3px solid ${EQUIPO_COLORS[e.id]}`}}>{e.emoji}</div>
+                  <div style={{padding:".65rem"}}>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".95rem",marginBottom:".1rem"}}>{e.nombre}</div>
+                    <div style={{fontSize:".67rem",color:"var(--mid)",marginBottom:".3rem"}}>{e.desc}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".82rem"}}>${e.precio.toLocaleString()}</span>
+                      <span style={{fontSize:".58rem",padding:".1rem .4rem",borderRadius:99,background:ocio?"#FEE2E2":"#D1FAE5",color:ocio?"#7F1D1D":"#064E3B",fontWeight:700}}>{ocio?"Ocioso":"Disp."}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>)}
+
+        {/* ══ MÉTRICAS ══════════════════════════════════════════════════════ */}
+        {seccion==="metricas"&&rol==="admin"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem",flexWrap:"wrap",gap:".5rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:0}}>📊 Métricas</h2>
+            {btn("📥 Excel",exportarExcel,"var(--green)")}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".85rem",marginBottom:"1rem"}}>
+            {[
+              {l:"Ingresos cobrados",v:`$${ingresos.toLocaleString()}`,s:`${resComp.length} completados`,c:"var(--bronze)"},
+              {l:"Señas recibidas",v:`$${senias.toLocaleString()}`,s:"En garantía",c:"var(--gold)"},
+              {l:"Turnos activos",v:resActivas.length,s:`de ${reservas.length} totales`,c:"var(--green)"},
+              {l:"Cancelaciones",v:resCan.length,s:`${equiposOciosos.length} equipos ociosos`,c:"var(--red)"},
+            ].map((m,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:".9rem 1.1rem",borderLeft:`4px solid ${m.c}`}}>
+                <div style={{fontSize:".63rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".18rem"}}>{m.l}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.7rem",color:"var(--dark)",lineHeight:1.1}}>{m.v}</div>
+                <div style={{fontSize:".68rem",color:"var(--mid)",marginTop:".08rem"}}>{m.s}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1.15rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem"}}>👥 Ranking de clientes</div>
+            <div style={{padding:".9rem"}}>
+              {rankingClientes.map((c,i)=>(
+                <div key={c.email} style={{display:"flex",alignItems:"center",gap:".65rem",padding:".45rem 0",borderBottom:"1px solid var(--sand)"}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",color:"var(--sand)",minWidth:24,textAlign:"center"}}>#{i+1}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:".82rem"}}>{c.nombre}</div>
+                    <div style={{fontSize:".66rem",color:"var(--mid)"}}>${c.monto.toLocaleString()}</div>
+                  </div>
+                  <span style={{fontWeight:700,color:"var(--bronze)"}}>{c.cant} reservas</span>
+                </div>
+              ))}
+              {rankingClientes.length===0&&<div style={{textAlign:"center",color:"var(--mid)",fontSize:".8rem"}}>Sin datos aún.</div>}
+            </div>
+          </div>
+        </>)}
+
+        {/* ══ PROMOS ════════════════════════════════════════════════════════ */}
+        {seccion==="promos"&&rol==="admin"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:0}}>Promociones</h2>
+            {btn("+ Nueva promo",()=>setModal("promo"),"var(--purple)")}
+          </div>
+          {promos.map(p=>{
+            const e=eq(p.equipoId), pp=Math.round((e?.precio||0)*(1-p.descuento/100));
+            return (
+              <div key={p.id} style={{background:"#fff",border:"1px solid #DDD6FE",borderRadius:12,padding:".9rem 1.1rem",marginBottom:".7rem",borderLeft:"4px solid var(--purple)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:".45rem"}}>
+                  <div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",marginBottom:".12rem"}}>{p.titulo}</div>
+                    <div style={{fontSize:".7rem",color:"var(--mid)"}}>{e?.emoji} {e?.nombre}</div>
+                    <div style={{marginTop:".3rem",display:"flex",gap:".4rem",alignItems:"center"}}>
+                      <span style={{textDecoration:"line-through",color:"var(--mid)",fontSize:".75rem"}}>${e?.precio.toLocaleString()}</span>
+                      <span style={{fontWeight:700,color:"var(--purple)",fontSize:".95rem"}}>${pp.toLocaleString()}</span>
+                      <span style={{padding:".13rem .5rem",borderRadius:99,fontSize:".62rem",fontWeight:700,background:"#EDE9FE",color:"#4C1D95"}}>-{p.descuento}%</span>
+                    </div>
+                  </div>
+                  <button onClick={()=>togglePromo(p)} style={{padding:".3rem .7rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>
+                </div>
+              </div>
+            );
+          })}
+          {promos.length===0&&<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Sin promos. Creá la primera.</div>}
+        </>)}
+
+        {/* ══ BUSCAR ════════════════════════════════════════════════════════ */}
+        {seccion==="buscar"&&rol==="admin"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem",flexWrap:"wrap",gap:".5rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:0}}>🔍 Buscar reservas</h2>
+            {btn("📥 Exportar",exportarExcel,"var(--green)")}
+          </div>
+          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:".8rem .95rem",marginBottom:".9rem",display:"flex",gap:".6rem",alignItems:"flex-end",flexWrap:"wrap"}}>
+            {[
+              {label:"Cliente",value:filtroC,onChange:e=>setFiltroC(e.target.value),options:[{value:"",label:"Todas"},...clientes.map(([email,nombre])=>({value:email,label:nombre}))]},
+              {label:"Equipo",value:filtroE,onChange:e=>setFiltroE(e.target.value),options:[{value:"",label:"Todos"},...EQUIPOS.map(e=>({value:e.id,label:`${e.emoji} ${e.nombre}`}))]},
+              {label:"Estado",value:filtroEst,onChange:e=>setFiltroEst(e.target.value),options:[{value:"",label:"Todos"},{value:"aceptada",label:"Aceptada"},{value:"seña",label:"Con seña"},{value:"activo",label:"Activo"},{value:"completado",label:"Completado"},{value:"cancelado",label:"Cancelado"}]},
+            ].map((f,i)=>(
+              <div key={i} style={{flex:1,minWidth:130}}>
+                <label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>{f.label}</label>
+                <select value={f.value} onChange={f.onChange} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}>
+                  {f.options.map((o,j)=><option key={j} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            ))}
+            <div style={{minWidth:120}}>
+              <label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Mes</label>
+              <input type="month" value={filterMes} onChange={e=>setFilterMes(e.target.value)} style={{padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/>
+            </div>
+            <button onClick={()=>{setFiltroC("");setFiltroE("");setFiltroEst("");setFilterMes("");}} style={{padding:".4rem .7rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600,alignSelf:"flex-end"}}>✕ Limpiar</button>
+          </div>
+          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1.15rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem"}}>Resultados — {reservasFiltradas.length} registros</div>
+            {reservasFiltradas.length===0?<div style={{padding:"2rem",textAlign:"center",color:"var(--mid)"}}>Sin resultados.</div>:<TablaReservas rs={reservasFiltradas}/>}
+          </div>
+        </>)}
+
+        {/* ══ TRANSPORTISTA ════════════════════════════════════════════════ */}
+        {seccion==="logistica"&&rol==="transportista"&&(<>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🚚 Mis Entregas</h2>
+          {reservas.filter(r=>!["completado","cancelado"].includes(r.estado)).sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
+            <div key={r.id} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:".9rem 1.1rem",marginBottom:".7rem",borderLeft:"4px solid var(--blue)"}}>
+              <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:".4rem",marginBottom:".5rem"}}>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".98rem"}}>{IL(r)}</div>
+                <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>
+                  {badge(r.estado)}
+                  <span style={{fontWeight:700,color:"var(--blue)",fontSize:".78rem"}}>${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>
+                </div>
+              </div>
+              <div style={{fontSize:".78rem",display:"flex",flexDirection:"column",gap:".18rem"}}>
+                <span>👤 {r.clienteNombre}</span>
+                <span>📅 {r.fecha} · 🟢 {r.horaEntrega||"—"} · 🔴 {r.horaRetiro||"—"}</span>
+                <span>📍 {r.direccion||"—"}</span>
+              </div>
+              <div style={{display:"flex",gap:".3rem",marginTop:".6rem"}}>
+                {r.estado==="aceptada"&&btn("📦 Entregar",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
+                {r.estado==="activo"&&btn("↩️ Retirado",()=>cambiarEstado(r.id,"completado"),"var(--mid)")}
+              </div>
+            </div>
+          ))}
+          {reservas.filter(r=>!["completado","cancelado"].includes(r.estado)).length===0&&<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>Sin entregas pendientes.</div>}
+        </>)}
+
+        {/* ══ MI SEMANA ════════════════════════════════════════════════════ */}
+        {seccion==="semana"&&rol==="transportista"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem",flexWrap:"wrap",gap:".4rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:0}}>💰 Mi Semana</h2>
+            <div style={{display:"flex",gap:".3rem"}}>
+              {btn("‹",()=>setSemOff(o=>o-1),"var(--mid)")}
+              {btn("Hoy",()=>setSemOff(0),"var(--mid)")}
+              {btn("›",()=>setSemOff(o=>o+1),"var(--mid)")}
+            </div>
+          </div>
+          <div style={{background:"var(--blue)",color:"#fff",padding:".58rem .9rem",fontWeight:600,fontSize:".8rem",display:"flex",justifyContent:"space-between",borderRadius:"12px 12px 0 0"}}>
+            <span>{semLabel(lunesSem)}</span><span>Total: ${totalSem.toLocaleString()}</span>
+          </div>
+          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
+            {resSem.length===0?<div style={{padding:"1.4rem",textAlign:"center",color:"var(--mid)",fontSize:".8rem"}}>Sin viajes esta semana.</div>
+            :<TablaReservas rs={resSem.sort((a,b)=>a.fecha.localeCompare(b.fecha))} acciones={false} mostrarCliente={true}/>}
+          </div>
+        </>)}
+
+        {/* ══ CLIENTE: CALENDARIO ══════════════════════════════════════════ */}
+        {seccion==="calendario_cliente"&&rol==="cliente"&&(<>
+          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>📅 Mi calendario</h2>
+          <CalendarView/>
+          {selDay&&(()=>{
+            const misResDia=reservas.filter(r=>r.clienteEmail===clienteEmail&&r.fecha===selDay&&r.estado!=="cancelado");
+            return misResDia.length>0?(
+              <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".8rem",overflow:"hidden"}}>
+                <div style={{background:"var(--light)",padding:".6rem 1rem",fontWeight:700,fontSize:".82rem",borderBottom:"1px solid var(--sand)"}}>Mis reservas del {selDay}</div>
+                {misResDia.map(r=>(
+                  <div key={r.id} style={{padding:".55rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem"}}>
+                    {getResColors(r,combos).map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:"50%",background:c}}/>)}
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:".82rem"}}>{r.horaEntrega||"—"} — {IL(r)}</div>
+                      <div style={{fontSize:".72rem",color:"var(--mid)"}}>Monto: ${r.monto.toLocaleString()}</div>
+                    </div>
+                    {badge(r.estado)}
+                  </div>
+                ))}
+              </div>
+            ):null;
+          })()}
+        </>)}
+
+        {/* ══ CLIENTE: MIS RESERVAS ════════════════════════════════════════ */}
+        {seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
+          const misR=reservas.filter(r=>r.clienteEmail===clienteEmail).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+          return (<>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🔍 Mis Reservas</h2>
+            {misR.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>Sin reservas.</div>:<TablaReservas rs={misR} acciones={false} mostrarCliente={false}/>}
+          </>);
+        })()}
+
+      </main>
+
+      {/* ══ MODALES ═══════════════════════════════════════════════════════ */}
+      {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
+      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios"/>}
+
+      {modal==="duplicar"&&editRes&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={()=>setModal(null)}>
+          <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:400,padding:"1.5rem",boxShadow:"0 24px 80px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",marginBottom:"1rem"}}>📋 Duplicar reserva</div>
+            <div style={{background:"var(--light)",borderRadius:10,padding:".85rem",marginBottom:".85rem",fontSize:".8rem"}}><strong>{editRes.clienteNombre}</strong> · {IL(editRes)}<br/>{editRes.fecha}</div>
+            <label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Nueva fecha</label>
+            <input type="date" value={dupFecha} onChange={e=>setDupFecha(e.target.value)} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem",marginBottom:"1rem"}}/>
+            <div style={{display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
+              <button onClick={()=>setModal(null)} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
+              {btn("Duplicar",()=>duplicarReserva(editRes),"var(--teal)")}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal==="cancelar"&&editRes&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={()=>setModal(null)}>
+          <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:400,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"var(--red)",color:"#fff",padding:".78rem 1.1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between"}}>❌ Cancelar reserva <CloseBtn onClose={()=>setModal(null)}/></div>
+            <div style={{padding:"1.1rem"}}>
+              <div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".5rem .8rem",fontSize:".75rem",color:"#7F1D1D",marginBottom:"1rem"}}>Esta acción no se puede deshacer.</div>
+              <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
+                {btn("❌ Cancelar totalmente",()=>cancelarReserva(editRes.id,"total"),"var(--red)")}
+                {btn("🚚 Cancelar y cobrar transporte igual",()=>cancelarReserva(editRes.id,"transporte"),"var(--bronze)")}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal==="promo"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={()=>setModal(null)}>
+          <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:420,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".78rem 1.1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between"}}>🎁 Nueva Promoción <CloseBtn onClose={()=>setModal(null)}/></div>
+            <div style={{padding:"1.1rem"}}>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Equipo</label>
+                <select value={promoForm.equipoId} onChange={e=>setPromoForm(f=>({...f,equipoId:e.target.value}))} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}>
+                  {EQUIPOS.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
+                </select>
+              </div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Título</label><input value={promoForm.titulo} onChange={e=>setPromoForm(f=>({...f,titulo:e.target.value}))} placeholder="Ej: Criolipolisis 20% OFF" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Descuento (%)</label><input type="number" min="1" max="80" value={promoForm.descuento} onChange={e=>setPromoForm(f=>({...f,descuento:e.target.value}))} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+            </div>
+            <div style={{padding:".78rem 1.1rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
+              <button onClick={()=>setModal(null)} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
+              {btn("Crear promo",crearPromo,"var(--purple)")}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal==="combo"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={()=>setModal(null)}>
+          <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:480,overflow:"hidden",maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 80px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".78rem 1.1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between",position:"sticky",top:0}}>📦 Nuevo Combo <CloseBtn onClose={()=>setModal(null)}/></div>
+            <div style={{padding:"1.1rem"}}>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Nombre</label><input value={comboForm.nombre} onChange={e=>setComboForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Pack Reafirmante" style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Descripción</label><input value={comboForm.desc} onChange={e=>setComboForm(f=>({...f,desc:e.target.value}))} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Precio especial</label><input type="number" value={comboForm.precio} onChange={e=>setComboForm(f=>({...f,precio:e.target.value}))} style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem"}}/></div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Equipos (mín. 2)</label>
+                <div style={{display:"flex",flexDirection:"column",gap:".26rem",maxHeight:190,overflowY:"auto",border:"1.5px solid var(--sand)",borderRadius:8,padding:".45rem .6rem",background:"var(--light)"}}>
+                  {EQUIPOS.map(e=>(
+                    <label key={e.id} style={{display:"flex",alignItems:"center",gap:".35rem",fontSize:".8rem",cursor:"pointer"}}>
+                      <input type="checkbox" checked={comboForm.equipoIds.includes(e.id)} onChange={ev=>setComboForm(f=>({...f,equipoIds:ev.target.checked?[...f.equipoIds,e.id]:f.equipoIds.filter(x=>x!==e.id)}))}/>
+                      {e.emoji} {e.nombre} <span style={{color:"var(--mid)",fontSize:".68rem"}}>(${e.precio.toLocaleString()})</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div style={{padding:".78rem 1.1rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
+              <button onClick={()=>setModal(null)} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
+              {btn("Crear combo",guardarCombo,"var(--teal)")}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast&&<div style={{position:"fixed",bottom:"1.3rem",right:"1.3rem",background:"var(--dark)",color:"var(--cream)",padding:".6rem .95rem",borderRadius:10,fontSize:".77rem",zIndex:500,borderLeft:"4px solid var(--gold)",boxShadow:"0 4px 20px rgba(0,0,0,.3)",maxWidth:300}}>{toast}</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
