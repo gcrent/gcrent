@@ -35,30 +35,35 @@
 <script type="text/babel">
 const { useState, useEffect, useMemo, useCallback } = React;
 
-// ─── EQUIPOS (catálogo fijo) ──────────────────────────────────────────────────
+// ─── EQUIPOS (catálogo real) ──────────────────────────────────────────────────
 const EQUIPOS = [
-  { id:1,  nombre:"Cavitadora Ultrasónica",   emoji:"〰️", desc:"Reducción localizada de grasa. 40kHz.",        precio:3500 },
-  { id:2,  nombre:"Radiofrecuencia Facial",    emoji:"✨",  desc:"Rejuvenecimiento y lifting.",                  precio:2800 },
-  { id:3,  nombre:"Presoterapia Completa",     emoji:"💆", desc:"Drenaje linfático con botas neumáticas.",      precio:1800 },
-  { id:4,  nombre:"Láser Diodo Depilación",    emoji:"💡", desc:"Depilación permanente. 808nm.",                precio:5000 },
-  { id:5,  nombre:"Microdermoabrasión",        emoji:"🌸", desc:"Exfoliación profunda con corindón.",           precio:1500 },
-  { id:6,  nombre:"Oxigenoterapia Facial",     emoji:"💨", desc:"Hidratación profunda con oxígeno puro.",       precio:2200 },
-  { id:7,  nombre:"Dermapen Profesional",      emoji:"🪡", desc:"Microagujas para rejuvenecimiento.",           precio:2600 },
-  { id:8,  nombre:"Luz Pulsada IPL",           emoji:"🔆", desc:"Manchas, rosácea y fotoenvejecimiento.",       precio:4200 },
-  { id:9,  nombre:"Criolipolisis",             emoji:"❄️", desc:"Eliminación de grasa por frío controlado.",    precio:6000 },
-  { id:10, nombre:"Electroestimulación EMS",   emoji:"⚡", desc:"Tonificación muscular profunda.",              precio:1600 },
-  { id:11, nombre:"Vacuum + Rodillo Corporal", emoji:"🌀", desc:"Masaje mecánico anticelulítico.",              precio:1900 },
-  { id:12, nombre:"Hifu Ultrasonido Focal",    emoji:"🎯", desc:"Lifting sin cirugía.",                         precio:7500 },
-  { id:13, nombre:"Peeling Ultrasónico",       emoji:"🔊", desc:"Limpieza profunda sin dolor.",                 precio:1400 },
-  { id:14, nombre:"Ozonoterapia Facial",       emoji:"🫧", desc:"Desinfección y regeneración con ozono.",       precio:1700 },
-  { id:15, nombre:"Lipolaser Corporal",        emoji:"🔴", desc:"Reducción de medidas con láser frío.",         precio:3800 },
+  { id:1,  nombre:"HIFU 12D Promax",                      emoji:"🎯", desc:"Lifting facial de alta intensidad.", precio:250000 },
+  { id:2,  nombre:"Depi Láser Soprano + Hollywood Peel",  emoji:"💡", desc:"Depilación láser + peeling.",        precio:100000 },
+  { id:3,  nombre:"Hollywood Peel y Tatuajes",            emoji:"✨",  desc:"Peeling láser y remoción tatuajes.", precio:80000  },
+  { id:4,  nombre:"Láser ADSS",                           emoji:"🔆", desc:"Láser multifunción ADSS.",           precio:65000  },
+  { id:5,  nombre:"Láser 2 Soprano",                      emoji:"💡", desc:"Depilación láser Soprano.",          precio:65000  },
+  { id:6,  nombre:"Láser 3 Soprano",                      emoji:"💡", desc:"Depilación láser Soprano.",          precio:65000  },
+  { id:7,  nombre:"Láser 4 Soprano",                      emoji:"💡", desc:"Depilación láser Soprano.",          precio:65000  },
+  { id:8,  nombre:"Mio Up Quad",                          emoji:"⚡", desc:"Electroestimulación muscular Quad.", precio:50000  },
+  { id:9,  nombre:"Mio Up",                               emoji:"⚡", desc:"Electroestimulación muscular.",      precio:50000  },
+  { id:10, nombre:"Criofraxis",                           emoji:"❄️", desc:"Crioterapia fraccionada.",           precio:50000  },
+  { id:11, nombre:"Teslagen Dúo Burst",                   emoji:"🔊", desc:"Ultrasonido focalizado dual.",        precio:40000  },
+  { id:12, nombre:"Criolipólisis Plana Sveltia 4 cab.",   emoji:"❄️", desc:"Reducción de grasa 4 cabezales.",   precio:45000  },
+  { id:13, nombre:"Velamax",                              emoji:"🌀", desc:"Vacuumterapia corporal.",             precio:32000  },
+  { id:14, nombre:"Vela 2 Plus",                          emoji:"🌀", desc:"Vacuumterapia corporal Plus.",        precio:32000  },
+  { id:15, nombre:"Velaslim Plus",                        emoji:"🌀", desc:"Velaslim corporal.",                 precio:32000  },
+  { id:16, nombre:"Vela Velvet Max",                      emoji:"🌀", desc:"Velvet Max corporal.",               precio:32000  },
+  { id:17, nombre:"Onda de Choque",                       emoji:"💥", desc:"Ondas de choque terapéuticas.",      precio:30000  },
 ];
 
 const EQUIPO_COLORS = {
   1:"#E07B54",2:"#7B9E87",3:"#5B8DB8",4:"#C4A35A",5:"#B56576",
   6:"#6B8FAB",7:"#8B7355",8:"#7E9B6E",9:"#9B6B8A",10:"#5B8A8A",
   11:"#C47C5A",12:"#7B6B9E",13:"#8A6B5B",14:"#6B9B7E",15:"#9E6B6B",
+  16:"#7A5B8A",17:"#5B7A6B",
 };
+
+const CLAVES = { admin:"Veinticuatro24", transportista:"marce26" };
 
 const TARIFA_BASE = 2500;
 const hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -241,7 +246,7 @@ function App() {
   const [dupFecha, setDupFecha] = useState("");
   const [comboForm, setComboForm] = useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm, setPromoForm] = useState({equipoId:"1",titulo:"",descuento:"10"});
-  const clienteEmail = "maria@mail.com";
+  const [clienteEmail, setClienteEmail] = useState("");
 
   const FDEF = {clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",senia:"",direccion:"",tarifaTransporte:String(TARIFA_BASE),repeticion:"none"};
   const [form, setForm] = useState(FDEF);
@@ -489,22 +494,100 @@ function App() {
     );
   };
 
+  const [loginStep, setLoginStep] = useState(null); // rol seleccionado esperando clave
+  const [claveInput, setClaveInput] = useState("");
+  const [claveError, setClaveError] = useState(false);
+
+  const intentarLogin = (key) => {
+    if (key === "cliente") {
+      setRol("cliente"); setSeccion("calendario_cliente"); return;
+    }
+    setLoginStep(key); setClaveInput(""); setClaveError(false);
+  };
+  const [clienteNombreLogin, setClienteNombreLogin] = useState("");
+  const [clienteEmailLogin, setClienteEmailLogin] = useState("");
+  const [clienteLoginError, setClienteLoginError] = useState(false);
+
+  const confirmarCliente = () => {
+    const emailTrim = clienteEmailLogin.trim().toLowerCase();
+    if (!clienteNombreLogin.trim() || !emailTrim.includes("@")) {
+      setClienteLoginError(true); return;
+    }
+    setClienteEmail(emailTrim);
+    setRol("cliente"); setSeccion("calendario_cliente");
+    setLoginStep(null);
+  };
+    if (claveInput === CLAVES[loginStep]) {
+      setRol(loginStep);
+      setSeccion(loginStep==="transportista"?"logistica":"agenda");
+      setLoginStep(null); setClaveInput("");
+    } else {
+      setClaveError(true);
+    }
+  };
+
   // ─── ROLES ────────────────────────────────────────────────────────────────
   if (!rol) return (
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.4rem 2rem",width:"100%",maxWidth:380,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
         <div style={{fontSize:".75rem",color:"var(--mid)",textAlign:"center",marginBottom:"1.8rem",letterSpacing:".1em",textTransform:"uppercase"}}>Gestión de alquiler de equipos</div>
-        {[
-          {key:"admin",label:"Administradora",icon:"👩‍💼",desc:"Gestión completa"},
-          {key:"transportista",label:"Transportista",icon:"🚚",desc:"Entregas y cobros semanales"},
-          {key:"cliente",label:"Cliente",icon:"👤",desc:"Reservas y disponibilidad"},
-        ].map(r=>(
-          <button key={r.key} onClick={()=>{setRol(r.key);setSeccion(r.key==="transportista"?"logistica":r.key==="cliente"?"calendario_cliente":"agenda");}} style={{display:"block",width:"100%",padding:".82rem 1.1rem",marginBottom:".65rem",borderRadius:12,border:"1.5px solid var(--sand)",background:"var(--cream)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".88rem",fontWeight:600,color:"var(--dark)",textAlign:"left"}}>
-            <span style={{fontSize:"1.1rem",marginRight:".5rem"}}>{r.icon}</span>{r.label}
-            <span style={{display:"block",fontSize:".68rem",fontWeight:400,color:"var(--mid)",marginTop:".06rem",marginLeft:"1.7rem"}}>{r.desc}</span>
-          </button>
-        ))}
+
+        {!loginStep ? (
+          [{key:"admin",label:"Administradora",icon:"👩‍💼",desc:"Gestión completa"},
+           {key:"transportista",label:"Transportista",icon:"🚚",desc:"Entregas y cobros semanales"},
+           {key:"cliente",label:"Cliente",icon:"👤",desc:"Mis reservas y disponibilidad"},
+          ].map(r=>(
+            <button key={r.key} onClick={()=>intentarLogin(r.key)} style={{display:"block",width:"100%",padding:".82rem 1.1rem",marginBottom:".65rem",borderRadius:12,border:"1.5px solid var(--sand)",background:"var(--cream)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".88rem",fontWeight:600,color:"var(--dark)",textAlign:"left"}}>
+              <span style={{fontSize:"1.1rem",marginRight:".5rem"}}>{r.icon}</span>{r.label}
+              <span style={{display:"block",fontSize:".68rem",fontWeight:400,color:"var(--mid)",marginTop:".06rem",marginLeft:"1.7rem"}}>{r.desc}</span>
+            </button>
+          ))
+        ) : loginStep==="cliente" ? (
+          <div>
+            <div style={{fontSize:".82rem",fontWeight:600,marginBottom:".8rem",color:"var(--mid)"}}>👤 Cliente — ingresá tus datos</div>
+            <input
+              value={clienteNombreLogin}
+              onChange={e=>{setClienteNombreLogin(e.target.value);setClienteLoginError(false);}}
+              placeholder="Tu nombre"
+              style={{width:"100%",padding:".55rem .8rem",border:`1.5px solid ${clienteLoginError&&!clienteNombreLogin.trim()?"var(--red)":"var(--sand)"}`,borderRadius:10,fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",marginBottom:".5rem",background:"var(--light)"}}
+            />
+            <input
+              type="email"
+              value={clienteEmailLogin}
+              onChange={e=>{setClienteEmailLogin(e.target.value);setClienteLoginError(false);}}
+              onKeyDown={e=>e.key==="Enter"&&confirmarCliente()}
+              placeholder="Tu email"
+              style={{width:"100%",padding:".55rem .8rem",border:`1.5px solid ${clienteLoginError?"var(--red)":"var(--sand)"}`,borderRadius:10,fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",marginBottom:".5rem",background:"var(--light)"}}
+            />
+            {clienteLoginError&&<div style={{color:"var(--red)",fontSize:".72rem",marginBottom:".5rem"}}>❌ Ingresá tu nombre y un email válido</div>}
+            <div style={{fontSize:".68rem",color:"var(--mid)",marginBottom:".7rem"}}>Solo verás tus propias reservas.</div>
+            <div style={{display:"flex",gap:".5rem"}}>
+              <button onClick={()=>setLoginStep(null)} style={{flex:1,padding:".5rem",borderRadius:10,border:"1.5px solid var(--sand)",background:"transparent",cursor:"pointer",fontSize:".82rem",color:"var(--mid)"}}>Volver</button>
+              <button onClick={confirmarCliente} style={{flex:2,padding:".5rem",borderRadius:10,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer",fontSize:".82rem",fontWeight:700}}>Ingresar</button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{fontSize:".82rem",fontWeight:600,marginBottom:".8rem",color:"var(--mid)"}}>
+              {loginStep==="admin"?"👩‍💼 Administradora":"🚚 Transportista"} — ingresá tu clave
+            </div>
+            <input
+              type="password"
+              value={claveInput}
+              onChange={e=>{setClaveInput(e.target.value);setClaveError(false);}}
+              onKeyDown={e=>e.key==="Enter"&&confirmarClave()}
+              placeholder="Contraseña"
+              autoFocus
+              style={{width:"100%",padding:".55rem .8rem",border:`1.5px solid ${claveError?"var(--red)":"var(--sand)"}`,borderRadius:10,fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",marginBottom:".5rem",background:"var(--light)"}}
+            />
+            {claveError&&<div style={{color:"var(--red)",fontSize:".72rem",marginBottom:".5rem"}}>❌ Clave incorrecta</div>}
+            <div style={{display:"flex",gap:".5rem"}}>
+              <button onClick={()=>setLoginStep(null)} style={{flex:1,padding:".5rem",borderRadius:10,border:"1.5px solid var(--sand)",background:"transparent",cursor:"pointer",fontSize:".82rem",color:"var(--mid)"}}>Volver</button>
+              <button onClick={confirmarClave} style={{flex:2,padding:".5rem",borderRadius:10,border:"none",background:"var(--bronze)",color:"#fff",cursor:"pointer",fontSize:".82rem",fontWeight:700}}>Ingresar</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
