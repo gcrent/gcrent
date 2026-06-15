@@ -137,6 +137,21 @@ const Overlay = ({onClose, children, maxW=540}) => (
 
 function FormReserva({titulo, form, fv, promos, combos, equipos, onSubmit, onCancel, submitLabel="Guardar"}) {
   const promoActiva = !form.usarCombo ? promos.find(p=>p.activa&&p.equipoId===+form.equipoId) : null;
+
+  // Sugerir precio cuando cambia el equipo o combo
+  useEffect(()=>{
+    if (form.usarCombo) {
+      const c = combos.find(x=>x.id===form.comboId);
+      if (c) fv("monto", String(c.precio));
+    } else {
+      const e = equipos.find(x=>x.id===+form.equipoId);
+      if (e) {
+        const precio = promoActiva ? Math.round(e.precio*(1-promoActiva.descuento/100)) : e.precio;
+        fv("monto", String(precio));
+      }
+    }
+  },[form.equipoId, form.comboId, form.usarCombo]);
+
   return (
     <Overlay onClose={onCancel} maxW={540}>
       <div style={S.modalHead}>{titulo} <CloseBtn onClose={onCancel}/></div>
@@ -171,7 +186,9 @@ function FormReserva({titulo, form, fv, promos, combos, equipos, onSubmit, onCan
           <div style={S.fg}><label style={S.lbl}>🔴 Hora retiro</label><input type="time" value={form.horaRetiro} onChange={e=>fv("horaRetiro",e.target.value)} style={S.inp}/></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".85rem"}}>
+          <div style={S.fg}><label style={S.lbl}>💲 Precio alquiler {promoActiva?"(promo aplicada)":"(editable)"}</label><input type="number" value={form.monto} onChange={e=>fv("monto",e.target.value)} style={{...S.inp,fontWeight:700,color:"var(--bronze)"}}/></div>
           <div style={S.fg}><label style={S.lbl}>Seña {promoActiva?"(mín 30%)":"(opcional)"}</label><input type="number" value={form.senia} onChange={e=>fv("senia",e.target.value)} placeholder="0" style={S.inp}/></div>
+        </div>
           <div style={S.fg}><label style={S.lbl}>💙 Tarifa transporte</label><input type="number" value={form.tarifaTransporte} onChange={e=>fv("tarifaTransporte",e.target.value)} style={S.inp}/></div>
         </div>
         <div style={S.fg}><label style={S.lbl}>↻ Repetición</label>
@@ -226,7 +243,7 @@ function App() {
   const [comboForm, setComboForm]   = useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm, setPromoForm]   = useState({equipoId:"1",titulo:"",descuento:"10"});
 
-  const FDEF = {clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",senia:"",direccion:"",tarifaTransporte:String(TARIFA_BASE),repeticion:"none"};
+  const FDEF = {clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",tarifaTransporte:String(TARIFA_BASE),repeticion:"none"};
   const [form, setForm] = useState(FDEF);
   const fv = useCallback((k,v) => setForm(f=>({...f,[k]:v})), []);
 
@@ -289,9 +306,10 @@ function App() {
   const guardarReserva = async () => {
     if (!form.clienteNombre||!form.fecha){ showToast("⚠️ Completá nombre y fecha"); return; }
     const promo = !form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
-    const monto = calcMonto(+form.equipoId, form.usarCombo?form.comboId:null, promo);
+    const montoSugerido = calcMonto(+form.equipoId, form.usarCombo?form.comboId:null, promo);
+    const monto = form.monto&&+form.monto>0 ? +form.monto : montoSugerido;
     const seniaVal = form.senia===""?0:+form.senia;
-    if (promo&&seniaVal<Math.round(monto*.3)){ showToast(`⚠️ Seña mínima $${Math.round(monto*.3).toLocaleString()}`); return; }
+    if (promo&&seniaVal<Math.round(monto*.3)){ showToast(`⚠️ Seña mínima ${Math.round(monto*.3).toLocaleString()}`); return; }
     const base = {
       id:genId(), clienteNombre:form.clienteNombre, clienteEmail:form.clienteEmail, clienteTel:form.clienteTel,
       equipoId:form.usarCombo?null:+form.equipoId, comboId:form.usarCombo?form.comboId:null,
@@ -313,7 +331,7 @@ function App() {
     setForm({clienteNombre:r.clienteNombre,clienteEmail:r.clienteEmail||"",clienteTel:r.clienteTel||"",
       equipoId:String(r.equipoId||1),comboId:r.comboId||"",usarCombo:!!r.comboId,
       fecha:r.fecha,horaEntrega:r.horaEntrega||"",horaRetiro:r.horaRetiro||"",
-      senia:String(r.senia),direccion:r.direccion||"",
+      monto:String(r.monto),senia:String(r.senia),direccion:r.direccion||"",
       tarifaTransporte:String(r.tarifaTransporte||tarifaBase),repeticion:r.repeticion||"none"});
     setModal("editar");
   };
