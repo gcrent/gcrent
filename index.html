@@ -216,7 +216,8 @@ function App() {
   const [filtroEst, setFiltroEst] = useState("");
   const [filterMes, setFilterMes] = useState("");
   const [dupFecha, setDupFecha] = useState("");
-  const [comboForm, setComboForm] = useState({nombre:"",equipoIds:[],desc:"",precio:""});
+  const [equipos, setEquipos] = useState(EQUIPOS);
+  const [equipoForm, setEquipoForm] = useState({nombre:"",emoji:"🔧",desc:"",precio:""});
   const [promoForm, setPromoForm] = useState({equipoId:"1",titulo:"",descuento:"10"});
 
   const FDEF = {clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",senia:"",direccion:"",tarifaTransporte:String(TARIFA_BASE),repeticion:"none"};
@@ -629,11 +630,14 @@ function App() {
         {/* EQUIPOS */}
         {seccion==="equipos"&&rol==="admin"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem"}}>
-            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem"}}>Catálogo — {EQUIPOS.length} equipos</h2>
-            {btn("📦 Nuevo combo",()=>setModal("combo"),"var(--teal)")}
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem"}}>Catálogo — {equipos.length} equipos</h2>
+            <div style={{display:"flex",gap:".5rem"}}>
+              {btn("+ Nuevo equipo",()=>setModal("equipo"),"var(--bronze)")}
+              {btn("📦 Nuevo combo",()=>setModal("combo"),"var(--teal)")}
+            </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",gap:".85rem"}}>
-            {EQUIPOS.map(e=>{
+            {equipos.map(e=>{
               const ocio=equiposOciosos.find(x=>x.id===e.id);
               return (
                 <div key={e.id} style={{background:"#fff",border:`1px solid ${ocio?"#FCA5A5":"var(--sand)"}`,borderRadius:12,overflow:"hidden"}}>
@@ -872,6 +876,36 @@ function App() {
             <div style={{padding:".78rem 1.1rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
               <button onClick={()=>setModal(null)} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
               {btn("Crear promo",crearPromo,"var(--purple)")}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modal==="equipo"&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={()=>setModal(null)}>
+          <div style={{background:"#fff",borderRadius:18,width:"100%",maxWidth:420,overflow:"hidden",boxShadow:"0 24px 80px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".78rem 1.1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between"}}>🔧 Nuevo Equipo <CloseBtn onClose={()=>setModal(null)}/></div>
+            <div style={{padding:"1.1rem"}}>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Nombre</label>
+                <input value={equipoForm.nombre} onChange={e=>setEquipoForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Radiofrecuencia Corporal"
+                  style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem",background:"var(--light)"}}/>
+              </div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Emoji</label>
+                <input value={equipoForm.emoji} onChange={e=>setEquipoForm(f=>({...f,emoji:e.target.value}))} placeholder="🔧"
+                  style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:"1.2rem",background:"var(--light)"}}/>
+              </div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Descripción</label>
+                <input value={equipoForm.desc} onChange={e=>setEquipoForm(f=>({...f,desc:e.target.value}))} placeholder="Descripción corta"
+                  style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem",background:"var(--light)"}}/>
+              </div>
+              <div style={{marginBottom:".75rem"}}><label style={{display:"block",fontSize:".66rem",fontWeight:600,color:"var(--mid)",marginBottom:".16rem",textTransform:"uppercase",letterSpacing:".06em"}}>Precio de alquiler</label>
+                <input type="number" value={equipoForm.precio} onChange={e=>setEquipoForm(f=>({...f,precio:e.target.value}))} placeholder="0"
+                  style={{width:"100%",padding:".46rem .7rem",border:"1.5px solid var(--sand)",borderRadius:8,fontFamily:"'DM Sans',sans-serif",fontSize:".84rem",background:"var(--light)"}}/>
+              </div>
+            </div>
+            <div style={{padding:".78rem 1.1rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"}}>
+              <button onClick={()=>setModal(null)} style={{padding:".4rem .85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".76rem",fontWeight:600}}>Cancelar</button>
+              {btn("Agregar equipo",guardarEquipo,"var(--bronze)")}
             </div>
           </div>
         </div>
