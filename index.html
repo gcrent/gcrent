@@ -351,12 +351,30 @@ function App() {
   };
 
   // ── Equipos ────────────────────────────────────────────────────────────────
+  const [editEquipo, setEditEquipo] = useState(null);
+
+  const abrirEditEquipo = e => {
+    setEditEquipo(e);
+    setEquipoForm({nombre:e.nombre, emoji:e.emoji, desc:e.desc||"", precio:String(e.precio)});
+    setModal("equipo");
+  };
+  const eliminarEquipo = id => {
+    const enUso = reservas.some(r=>r.equipoId===id&&r.estado!=="cancelado");
+    if (enUso){ showToast("⚠️ No se puede eliminar: tiene reservas activas"); return; }
+    setEquipos(es=>es.filter(e=>e.id!==id));
+    showToast("🗑️ Equipo eliminado");
+  };
   const guardarEquipo = () => {
     if (!equipoForm.nombre||!equipoForm.precio){ showToast("⚠️ Nombre y precio requeridos"); return; }
-    const nuevoId = Math.max(...equipos.map(e=>e.id))+1;
-    setEquipos(es=>[...es,{id:nuevoId,nombre:equipoForm.nombre,emoji:equipoForm.emoji||"🔧",desc:equipoForm.desc,precio:+equipoForm.precio}]);
-    setModal(null); setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:""});
-    showToast("✅ Equipo agregado");
+    if (editEquipo) {
+      setEquipos(es=>es.map(e=>e.id===editEquipo.id?{...e,nombre:equipoForm.nombre,emoji:equipoForm.emoji||"🔧",desc:equipoForm.desc,precio:+equipoForm.precio}:e));
+      showToast("✅ Equipo actualizado");
+    } else {
+      const nuevoId = Math.max(...equipos.map(e=>e.id))+1;
+      setEquipos(es=>[...es,{id:nuevoId,nombre:equipoForm.nombre,emoji:equipoForm.emoji||"🔧",desc:equipoForm.desc,precio:+equipoForm.precio}]);
+      showToast("✅ Equipo agregado");
+    }
+    setModal(null); setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:""}); setEditEquipo(null);
   };
 
   // ── Combos ─────────────────────────────────────────────────────────────────
@@ -642,6 +660,10 @@ function App() {
                       <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".78rem"}}>${e.precio.toLocaleString()}</span>
                       <span style={{fontSize:".58rem",padding:".1rem .4rem",borderRadius:99,background:ocio?"#FEE2E2":"#D1FAE5",color:ocio?"#7F1D1D":"#064E3B",fontWeight:700}}>{ocio?"Ocioso":"Disp."}</span>
                     </div>
+                    <div style={{display:"flex",gap:".3rem",marginTop:".4rem"}}>
+                      <button onClick={()=>abrirEditEquipo(e)} style={{flex:1,padding:".18rem 0",fontSize:".62rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}}>✏️ Editar</button>
+                      <button onClick={()=>eliminarEquipo(e.id)} style={{flex:1,padding:".18rem 0",fontSize:".62rem",borderRadius:6,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer"}}>🗑️ Borrar</button>
+                    </div>
                   </div>
                 </div>
               );
@@ -818,8 +840,8 @@ function App() {
       {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios"/>}
 
       {modal==="equipo"&&(
-        <Overlay onClose={()=>setModal(null)} maxW={420}>
-          <div style={S.modalHead}>🔧 Nuevo Equipo <CloseBtn onClose={()=>setModal(null)}/></div>
+        <Overlay onClose={()=>{setModal(null);setEditEquipo(null);setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:""}); }} maxW={420}>
+          <div style={S.modalHead}>{editEquipo?"✏️ Editar Equipo":"🔧 Nuevo Equipo"} <CloseBtn onClose={()=>{setModal(null);setEditEquipo(null);setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:""}); }}/></div>
           <div style={{padding:"1.1rem"}}>
             <div style={S.fg}><label style={S.lbl}>Nombre</label><input value={equipoForm.nombre} onChange={e=>setEquipoForm(f=>({...f,nombre:e.target.value}))} placeholder="Ej: Radiofrecuencia Corporal" style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Emoji</label><input value={equipoForm.emoji} onChange={e=>setEquipoForm(f=>({...f,emoji:e.target.value}))} placeholder="🔧" style={{...S.inp,fontSize:"1.2rem"}}/></div>
