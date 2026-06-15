@@ -239,10 +239,26 @@ function App() {
       setRol(loginStep); setSeccion(loginStep==="transportista"?"logistica":"agenda"); setLoginStep(null); setClaveInput("");
     } else { setClaveError(true); }
   };
-  const confirmarCliente = () => {
-    const emailTrim = clienteEmailLogin.trim().toLowerCase();
-    if (!clienteNombreLogin.trim()||!emailTrim.includes("@")) { setClienteLoginError(true); return; }
-    setClienteEmail(emailTrim); setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
+  const confirmarCliente = async () => {
+    const tel = clienteNombreLogin.trim(); // reutilizamos campo como teléfono
+    const pass = clienteEmailLogin.trim();
+    if (!tel || !pass) { setClienteLoginError(true); return; }
+
+    // Buscar si ya existe
+    const { data: existing } = await supa.from("clientes").select("*").eq("telefono", tel).single();
+
+    if (existing) {
+      // Ya registrada — verificar contraseña
+      if (existing.password !== pass) { setClienteLoginError(true); return; }
+      setClienteEmail(existing.telefono);
+      setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
+    } else {
+      // Primera vez — registrar
+      const { error } = await supa.from("clientes").insert({ telefono: tel, nombre: tel, password: pass });
+      if (error) { setClienteLoginError(true); return; }
+      setClienteEmail(tel);
+      setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
+    }
   };
 
   // ── Cargar datos ───────────────────────────────────────────────────────────
@@ -532,12 +548,12 @@ function App() {
         {loginStep==="cliente" && (
           <div>
             <div style={{fontSize:".82rem",fontWeight:600,marginBottom:".8rem",color:"var(--mid)"}}>👤 Cliente — ingresá tus datos</div>
-            <input value={clienteNombreLogin} onChange={e=>{setClienteNombreLogin(e.target.value);setClienteLoginError(false);}} placeholder="Tu nombre"
+            <input value={clienteNombreLogin} onChange={e=>{setClienteNombreLogin(e.target.value);setClienteLoginError(false);}} placeholder="Tu número de teléfono"
               style={{width:"100%",padding:".55rem .8rem",border:`1.5px solid ${clienteLoginError&&!clienteNombreLogin.trim()?"var(--red)":"var(--sand)"}`,borderRadius:10,fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",marginBottom:".5rem",background:"var(--light)"}}/>
-            <input type="email" value={clienteEmailLogin} onChange={e=>{setClienteEmailLogin(e.target.value);setClienteLoginError(false);}} onKeyDown={e=>e.key==="Enter"&&confirmarCliente()} placeholder="Tu email"
+            <input type="password" value={clienteEmailLogin} onChange={e=>{setClienteEmailLogin(e.target.value);setClienteLoginError(false);}} onKeyDown={e=>e.key==="Enter"&&confirmarCliente()} placeholder="Tu contraseña (elegí la que quieras)"
               style={{width:"100%",padding:".55rem .8rem",border:`1.5px solid ${clienteLoginError?"var(--red)":"var(--sand)"}`,borderRadius:10,fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",marginBottom:".5rem",background:"var(--light)"}}/>
-            {clienteLoginError&&<div style={{color:"var(--red)",fontSize:".72rem",marginBottom:".5rem"}}>❌ Ingresá tu nombre y un email válido</div>}
-            <div style={{fontSize:".68rem",color:"var(--mid)",marginBottom:".7rem"}}>Solo verás tus propias reservas.</div>
+            {clienteLoginError&&<div style={{color:"var(--red)",fontSize:".72rem",marginBottom:".5rem"}}>❌ Teléfono o contraseña incorrectos</div>}
+            <div style={{fontSize:".68rem",color:"var(--mid)",marginBottom:".7rem"}}>Primera vez: elegí una contraseña y quedás registrada. Próximas veces usás los mismos datos.</div>
             <div style={{display:"flex",gap:".5rem"}}>
               <button onClick={()=>setLoginStep(null)} style={{flex:1,padding:".5rem",borderRadius:10,border:"1.5px solid var(--sand)",background:"transparent",cursor:"pointer",fontSize:".82rem",color:"var(--mid)"}}>Volver</button>
               <button onClick={confirmarCliente} style={{flex:2,padding:".5rem",borderRadius:10,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer",fontSize:".82rem",fontWeight:700}}>Ingresar</button>
