@@ -247,18 +247,17 @@ function App() {
     // Buscar si ya existe
     const { data: existing } = await supa.from("clientes").select("*").eq("telefono", tel).single();
 
-    if (existing) {
-      // Ya registrada — verificar contraseña
-      if (existing.password !== pass) { setClienteLoginError(true); return; }
-      setClienteEmail(existing.telefono);
-      setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
-    } else {
-      // Primera vez — registrar
-      const { error } = await supa.from("clientes").insert({ telefono: tel, nombre: tel, password: pass });
-      if (error) { setClienteLoginError(true); return; }
-      setClienteEmail(tel);
-      setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
-    }
+          // Buscar si ya existe
+      if (existing) {
+        if (existing.password !== pass) { setClienteLoginError(true); return; }
+        setClienteEmail(existing.telefono);
+        setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
+      } else {
+        const { error } = await supa.from("clientes").insert({ telefono: tel, nombre: tel, password: pass });
+        if (error) { setClienteLoginError(true); return; }
+        setClienteEmail(tel);
+        setRol("cliente"); setSeccion("calendario_cliente"); setLoginStep(null);
+      }
   };
 
   // ── Cargar datos ───────────────────────────────────────────────────────────
@@ -792,7 +791,7 @@ function App() {
           <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>📅 Mi calendario</h2>
           <CalendarView filtrarEmail={clienteEmail}/>
           {selDay&&(()=>{
-            const misResDia=reservas.filter(r=>r.clienteEmail===clienteEmail&&r.fecha===selDay&&r.estado!=="cancelado");
+            const misResDia=reservas.filter(r=>(r.clienteTel===clienteEmail||r.clienteEmail===clienteEmail)&&r.fecha===selDay&&r.estado!=="cancelado");
             return misResDia.length>0?(
               <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".8rem",overflow:"hidden"}}>
                 <div style={{background:"var(--light)",padding:".6rem 1rem",fontWeight:700,fontSize:".82rem",borderBottom:"1px solid var(--sand)"}}>Mis reservas del {selDay}</div>
@@ -810,10 +809,10 @@ function App() {
 
         {/* CLIENTE: MIS RESERVAS */}
         {seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
-          const misR=reservas.filter(r=>r.clienteEmail===clienteEmail).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+          const misR=reservas.filter(r=>r.clienteTel===clienteEmail||r.clienteEmail===clienteEmail).sort((a,b)=>a.fecha.localeCompare(b.fecha));
           return (<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🔍 Mis Reservas</h2>
-            {misR.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>Sin reservas con este email.</div>:<TablaReservas rs={misR} acciones={false} mostrarCliente={false}/>}
+            {misR.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>No tenés reservas registradas aún.</div>:<TablaReservas rs={misR} acciones={false} mostrarCliente={false}/>}
           </>);
         })()}
 
