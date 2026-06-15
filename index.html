@@ -451,8 +451,8 @@ function App() {
   };
 
   // ── UI helpers ─────────────────────────────────────────────────────────────
-  const btn = (label,onClick,bg="var(--bronze)") => (
-    <button onClick={onClick} style={{display:"inline-flex",alignItems:"center",gap:".28rem",padding:".4rem .85rem",borderRadius:8,border:"none",background:bg,color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>
+  const btn = (label,onClick,bg="var(--bronze)",color="#fff") => (
+    <button onClick={onClick} style={{display:"inline-flex",alignItems:"center",gap:".28rem",padding:".4rem .85rem",borderRadius:8,border:"none",background:bg,color,fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}}>{label}</button>
   );
   const badge = e => {
     const m={aceptada:"#DBEAFE::#1E3A5F",seña:"#FEF3CD::#7A5800",activo:"#D1FAE5::#064E3B",completado:"#E2E3E5::#383D41",cancelado:"#FEE2E2::#7F1D1D"};
@@ -801,11 +801,11 @@ function App() {
                   {r.estado==="aceptada"&&btn("✅ Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
                   {r.estado==="activo"&&<>
                     {btn("↩️ Retirado — cobrar $"+(r.tarifaTransporte||tarifaBase).toLocaleString(),()=>cambiarEstado(r.id,"completado"),"var(--green)")}
-                    {btn("← Deshacer entrega",()=>cambiarEstado(r.id,"aceptada"),"var(--sand)")}
+                    {btn("← Deshacer entrega",()=>cambiarEstado(r.id,"aceptada"),"#E8E0D5","var(--mid)")}
                   </>}
                   {r.estado==="completado"&&<>
                     <span style={{fontSize:".75rem",color:"var(--green)",fontWeight:700}}>✅ Cobrado — ${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>
-                    {btn("← Deshacer retiro",()=>cambiarEstado(r.id,"activo"),"var(--sand)")}
+                    {btn("← Deshacer retiro",()=>cambiarEstado(r.id,"activo"),"#E8E0D5","var(--mid)")}
                   </>}
                 </div>
               </div>
