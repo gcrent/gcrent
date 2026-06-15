@@ -219,7 +219,7 @@ function App() {
   const [filtroE, setFiltroE]   = useState("");
   const [filtroEst, setFiltroEst] = useState("");
   const [filterMes, setFilterMes] = useState("");
-  const [filtroTransp, setFiltroTransp] = useState("pendiente");
+  const [periodoTransp, setPeriodoTransp] = useState("semana");
 
   const [dupFecha, setDupFecha] = useState("");
   const [comboForm, setComboForm]   = useState({nombre:"",equipoIds:[],desc:"",precio:""});
@@ -765,16 +765,26 @@ function App() {
 
         {/* TRANSPORTISTA */}
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
-          const entregasPendientes = reservas.filter(r=>r.estado==="aceptada");
-          const entregadas = reservas.filter(r=>r.estado==="activo");
-          const retiradas = reservas.filter(r=>r.estado==="completado");
+          const inicioSem = getLunes(hoy), finSem = addD(inicioSem,6);
+          const inicioMes = new Date(hoy.getFullYear(),hoy.getMonth(),1);
+          const finMes    = new Date(hoy.getFullYear(),hoy.getMonth()+1,0);
+          const enPeriodo = r => {
+            const d = new Date(r.fecha+"T12:00");
+            return periodoTransp==="semana" ? d>=inicioSem&&d<=finSem : d>=inicioMes&&d<=finMes;
+          };
+          const entregasPendientes = reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
+          const entregadas         = reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
+          const retiradas          = reservas.filter(r=>r.estado==="completado"&&enPeriodo(r));
           const mostrar = filtroTransp==="pendiente" ? entregasPendientes
-            : filtroTransp==="entregado" ? entregadas
-            : retiradas;
+            : filtroTransp==="entregado" ? entregadas : retiradas;
           return (<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🚚 Mis Entregas</h2>
 
-            {/* Filtro */}
+            {/* Periodo */}
+            <div style={{display:"flex",gap:".5rem",marginBottom:".7rem"}}>
+              {btn("📅 Esta semana",()=>setPeriodoTransp("semana"),periodoTransp==="semana"?"var(--dark)":"var(--sand)",periodoTransp==="semana"?"#fff":"var(--mid)")}
+              {btn("🗓 Este mes",()=>setPeriodoTransp("mes"),periodoTransp==="mes"?"var(--dark)":"var(--sand)",periodoTransp==="mes"?"#fff":"var(--mid)")}
+            </div>            {/* Filtro */}
             <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",flexWrap:"wrap"}}>
               {[{k:"pendiente",l:`📦 A entregar (${entregasPendientes.length})`},
                 {k:"entregado",l:`🏪 En estética (${entregadas.length})`},
