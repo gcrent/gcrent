@@ -797,14 +797,16 @@ function App() {
                   <span>📅 {fmtVis(r.fecha)} · 🟢 Entrega: {r.horaEntrega||"—"} · 🔴 Retiro: {r.horaRetiro||"—"}</span>
                   <span>📍 {r.direccion||"—"}</span>
                 </div>
-                <div style={{display:"flex",gap:".3rem",marginTop:".6rem"}}>
+                <div style={{display:"flex",gap:".3rem",marginTop:".6rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("✅ Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
-                  {r.estado==="activo"&&(
-                    <div style={{display:"flex",alignItems:"center",gap:".6rem",flexWrap:"wrap"}}>
-                      {btn("↩️ Retirado — cobrar $"+(r.tarifaTransporte||tarifaBase).toLocaleString(),()=>cambiarEstado(r.id,"completado"),"var(--green)")}
-                    </div>
-                  )}
-                  {r.estado==="completado"&&<span style={{fontSize:".75rem",color:"var(--green)",fontWeight:700}}>✅ Cobrado — ${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>}
+                  {r.estado==="activo"&&<>
+                    {btn("↩️ Retirado — cobrar $"+(r.tarifaTransporte||tarifaBase).toLocaleString(),()=>cambiarEstado(r.id,"completado"),"var(--green)")}
+                    {btn("← Deshacer entrega",()=>cambiarEstado(r.id,"aceptada"),"var(--sand)")}
+                  </>}
+                  {r.estado==="completado"&&<>
+                    <span style={{fontSize:".75rem",color:"var(--green)",fontWeight:700}}>✅ Cobrado — ${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>
+                    {btn("← Deshacer retiro",()=>cambiarEstado(r.id,"activo"),"var(--sand)")}
+                  </>}
                 </div>
               </div>
             ))}
