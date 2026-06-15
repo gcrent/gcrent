@@ -219,9 +219,9 @@ function App() {
   const [filtroE, setFiltroE]   = useState("");
   const [filtroEst, setFiltroEst] = useState("");
   const [filterMes, setFilterMes] = useState("");
-  const [dupFecha, setDupFecha] = useState("");
+  const [filtroTransp, setFiltroTransp] = useState("pendiente");
 
-  const [equipoForm, setEquipoForm] = useState({nombre:"",emoji:"🔧",desc:"",precio:""});
+  const [dupFecha, setDupFecha] = useState("");
   const [comboForm, setComboForm]   = useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm, setPromoForm]   = useState({equipoId:"1",titulo:"",descuento:"10"});
 
@@ -765,7 +765,6 @@ function App() {
 
         {/* TRANSPORTISTA */}
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
-          const [filtroTransp, setFiltroTransp] = useState("pendiente");
           const entregasPendientes = reservas.filter(r=>r.estado==="aceptada");
           const entregadas = reservas.filter(r=>r.estado==="activo");
           const retiradas = reservas.filter(r=>r.estado==="completado");
