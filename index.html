@@ -764,27 +764,53 @@ function App() {
         </>)}
 
         {/* TRANSPORTISTA */}
-        {seccion==="logistica"&&rol==="transportista"&&(<>
-          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🚚 Mis Entregas</h2>
-          {reservas.filter(r=>!["completado","cancelado"].includes(r.estado)).sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
-            <div key={r.id} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:".9rem 1.1rem",marginBottom:".7rem",borderLeft:"4px solid var(--blue)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:".4rem",marginBottom:".5rem"}}>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".98rem"}}>{IL(r)}</div>
-                <div style={{display:"flex",gap:".4rem",alignItems:"center"}}>{badge(r.estado)}<span style={{fontWeight:700,color:"var(--blue)",fontSize:".78rem"}}>${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span></div>
-              </div>
-              <div style={{fontSize:".78rem",display:"flex",flexDirection:"column",gap:".18rem"}}>
-                <span>👤 {r.clienteNombre}</span>
-                <span>📅 {fmtVis(r.fecha)} · 🟢 {r.horaEntrega||"—"} · 🔴 {r.horaRetiro||"—"}</span>
-                <span>📍 {r.direccion||"—"}</span>
-              </div>
-              <div style={{display:"flex",gap:".3rem",marginTop:".6rem"}}>
-                {r.estado==="aceptada"&&btn("📦 Entregar",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
-                {r.estado==="activo"&&btn("↩️ Retirado",()=>cambiarEstado(r.id,"completado"),"var(--mid)")}
-              </div>
+        {seccion==="logistica"&&rol==="transportista"&&(()=>{
+          const [filtroTransp, setFiltroTransp] = useState("pendiente");
+          const entregasPendientes = reservas.filter(r=>r.estado==="aceptada");
+          const entregadas = reservas.filter(r=>r.estado==="activo");
+          const retiradas = reservas.filter(r=>r.estado==="completado");
+          const mostrar = filtroTransp==="pendiente" ? entregasPendientes
+            : filtroTransp==="entregado" ? entregadas
+            : retiradas;
+          return (<>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🚚 Mis Entregas</h2>
+
+            {/* Filtro */}
+            <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",flexWrap:"wrap"}}>
+              {[{k:"pendiente",l:`📦 A entregar (${entregasPendientes.length})`},
+                {k:"entregado",l:`🏪 En estética (${entregadas.length})`},
+                {k:"retirado", l:`✅ Retirados (${retiradas.length})`}
+              ].map(f=>(
+                <button key={f.k} onClick={()=>setFiltroTransp(f.k)} style={{padding:".4rem .85rem",borderRadius:8,border:"none",background:filtroTransp===f.k?"var(--blue)":"var(--sand)",color:filtroTransp===f.k?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".76rem",fontWeight:600}}>{f.l}</button>
+              ))}
             </div>
-          ))}
-          {reservas.filter(r=>!["completado","cancelado"].includes(r.estado)).length===0&&<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>Sin entregas pendientes.</div>}
-        </>)}
+
+            {mostrar.length===0 && <div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>Sin equipos en esta categoría.</div>}
+
+            {mostrar.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
+              <div key={r.id} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,padding:".9rem 1.1rem",marginBottom:".7rem",borderLeft:`4px solid ${filtroTransp==="pendiente"?"var(--gold)":filtroTransp==="entregado"?"var(--blue)":"var(--green)"}`}}>
+                <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:".4rem",marginBottom:".5rem"}}>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".98rem"}}>{IL(r)}</div>
+                  <span style={{fontWeight:700,color:"var(--blue)",fontSize:".9rem"}}>💰 ${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>
+                </div>
+                <div style={{fontSize:".78rem",display:"flex",flexDirection:"column",gap:".18rem"}}>
+                  <span>👤 {r.clienteNombre}</span>
+                  <span>📅 {fmtVis(r.fecha)} · 🟢 Entrega: {r.horaEntrega||"—"} · 🔴 Retiro: {r.horaRetiro||"—"}</span>
+                  <span>📍 {r.direccion||"—"}</span>
+                </div>
+                <div style={{display:"flex",gap:".3rem",marginTop:".6rem"}}>
+                  {r.estado==="aceptada"&&btn("✅ Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
+                  {r.estado==="activo"&&(
+                    <div style={{display:"flex",alignItems:"center",gap:".6rem",flexWrap:"wrap"}}>
+                      {btn("↩️ Retirado — cobrar $"+(r.tarifaTransporte||tarifaBase).toLocaleString(),()=>cambiarEstado(r.id,"completado"),"var(--green)")}
+                    </div>
+                  )}
+                  {r.estado==="completado"&&<span style={{fontSize:".75rem",color:"var(--green)",fontWeight:700}}>✅ Cobrado — ${(r.tarifaTransporte||tarifaBase).toLocaleString()}</span>}
+                </div>
+              </div>
+            ))}
+          </>);
+        })()}
 
         {seccion==="semana"&&rol==="transportista"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem",flexWrap:"wrap",gap:".4rem"}}>
