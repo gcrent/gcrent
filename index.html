@@ -725,11 +725,24 @@ function App(){
           const enEst=reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
           const ret=reservas.filter(r=>r.estado==="completado"&&enPeriodo(r));
           const mostrar=filtroTransp==="pendiente"?pend:filtroTransp==="entregado"?enEst:ret;
+          const totalPeriodo=[...pend,...enEst,...ret].reduce((a,r)=>a+(r.tarifaTransporte||tarifaBase),0);
           return(<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",marginBottom:".8rem"}}>🚚 Mis Entregas</h2>
             <div style={{display:"flex",gap:".5rem",marginBottom:".7rem",flexWrap:"wrap"}}>
               {btn(periodoTransp==="semana"?"📅 Esta semana ✓":"📅 Esta semana",()=>setPeriodoTransp("semana"),periodoTransp==="semana"?"var(--dark)":"var(--sand)",periodoTransp==="semana"?"#fff":"var(--mid)")}
               {btn(periodoTransp==="mes"?"🗓 Este mes ✓":"🗓 Este mes",()=>setPeriodoTransp("mes"),periodoTransp==="mes"?"var(--dark)":"var(--sand)",periodoTransp==="mes"?"#fff":"var(--mid)")}
+            </div>
+            <div style={{background:"linear-gradient(135deg,var(--blue),#1a4a6e)",color:"#fff",borderRadius:12,padding:".9rem 1.2rem",marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".5rem"}}>
+              <div>
+                <div style={{fontSize:".68rem",opacity:.8,textTransform:"uppercase",letterSpacing:".06em"}}>Total estimado a cobrar</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.8rem",fontWeight:700}}>${totalPeriodo.toLocaleString()}</div>
+                <div style={{fontSize:".72rem",opacity:.75}}>{pend.length+enEst.length+ret.length} viajes · {periodoTransp==="semana"?"esta semana":"este mes"}</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",gap:".25rem",fontSize:".75rem"}}>
+                <span>📦 A entregar: <strong>{pend.length}</strong></span>
+                <span>🏪 En estética: <strong>{enEst.length}</strong></span>
+                <span>✅ Retirados: <strong>{ret.length}</strong></span>
+              </div>
             </div>
             <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",flexWrap:"wrap"}}>
               {[{k:"pendiente",l:`📦 A entregar (${pend.length})`},{k:"entregado",l:`🏪 En estética (${enEst.length})`},{k:"retirado",l:`✅ Retirados (${ret.length})`}].map(f=>(
@@ -774,11 +787,45 @@ function App(){
             </div>
           </div>
           <div style={{background:"var(--blue)",color:"#fff",padding:".58rem .9rem",fontWeight:600,fontSize:".8rem",display:"flex",justifyContent:"space-between",borderRadius:"12px 12px 0 0"}}>
-            <span>{semLabel(lunesSem)}</span><span>Total: ${totalSem.toLocaleString()}</span>
+            <span>{semLabel(lunesSem)}</span><span>💰 Total viajes: ${totalSem.toLocaleString()}</span>
           </div>
           <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
             {resSem.length===0?<div style={{padding:"1.4rem",textAlign:"center",color:"var(--mid)",fontSize:".8rem"}}>Sin viajes.</div>
-            :<TablaReservas rs={resSem.sort((a,b)=>a.fecha.localeCompare(b.fecha))} acciones={false}/>}
+            :<div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:".75rem"}}>
+                <thead><tr style={{background:"var(--light)"}}>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Cliente</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Equipo</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Fecha</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Entrega</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Retiro</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Mi viaje</th>
+                  <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Estado</th>
+                </tr></thead>
+                <tbody>
+                  {resSem.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
+                    <tr key={r.id} style={{background:r.estado==="completado"?"#F0FFF4":"#fff"}}>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}><strong>{r.clienteNombre}</strong></td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".72rem"}}>{IL(r)}</td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{fmtVis(r.fecha)}</td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaEntrega||"—"}</td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaRetiro||"—"}</td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontWeight:700,color:"var(--blue)"}}>${(r.tarifaTransporte||tarifaBase).toLocaleString()}</td>
+                      <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>
+                        <span style={{display:"inline-block",padding:".13rem .5rem",borderRadius:99,fontSize:".62rem",fontWeight:700,background:r.estado==="completado"?"#D1FAE5":"#FEF3CD",color:r.estado==="completado"?"#064E3B":"#7A5800"}}>
+                          {r.estado==="completado"?"✅ Completado":"⏳ Pendiente"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr style={{background:"var(--light)",fontWeight:700}}>
+                    <td colSpan={5} style={{padding:".46rem .75rem",fontSize:".75rem"}}>TOTAL</td>
+                    <td style={{padding:".46rem .75rem",color:"var(--blue)",fontSize:".85rem"}}>${totalSem.toLocaleString()}</td>
+                    <td/>
+                  </tr>
+                </tbody>
+              </table>
+            </div>}
           </div>
         </>)}
 
