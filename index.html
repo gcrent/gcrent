@@ -428,15 +428,15 @@ function App(){
     return<span style={{display:"inline-block",padding:".13rem .5rem",borderRadius:99,fontSize:".62rem",fontWeight:700,background:bg,color}}>{estadoLabel(e)}</span>;
   };
 
-  const TablaReservas=({rs,acciones=true,mostrarCliente=true})=>(
+  const TablaReservas=({rs,acciones=true,mostrarCliente=true,mostrarHoras=false})=>(
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:".75rem"}}>
         <thead><tr style={{background:"var(--light)"}}>
           {mostrarCliente&&<th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Cliente</th>}
           <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Equipo</th>
           <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Fecha</th>
-          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Entrega</th>
-          <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Retiro</th>
+          {mostrarHoras&&<th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Entrega</th>}
+          {mostrarHoras&&<th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Retiro</th>}
           <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Monto</th>
           <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Seña</th>
           <th style={{padding:".46rem .75rem",textAlign:"left",fontSize:".62rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>Estado</th>
@@ -448,10 +448,10 @@ function App(){
               {mostrarCliente&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}><strong>{r.clienteNombre}</strong></td>}
               <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontSize:".72rem"}}>{IL(r)}</td>
               <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{fmtVis(r.fecha)}</td>
-              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaEntrega||"—"}</td>
-              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaRetiro||"—"}</td>
+              {mostrarHoras&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaEntrega||"—"}</td>}
+              {mostrarHoras&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaRetiro||"—"}</td>}
               <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",fontWeight:600}}>${r.monto.toLocaleString()}</td>
-              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",color:"var(--green)"}}>{r.senia>0?`$${r.senia.toLocaleString()}`:"—"}</td>
+              <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0",color:"var(--green)"}}>{r.senia>0?`${r.senia.toLocaleString()}`:"—"}</td>
               <td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>{badge(r.estado)}</td>
               {acciones&&<td style={{padding:".46rem .75rem",borderBottom:"1px solid #EDE8E0"}}>
                 <div style={{display:"flex",gap:".2rem",flexWrap:"wrap"}}>
@@ -557,25 +557,22 @@ function App(){
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
       <nav style={{background:"var(--dark)",padding:"0",display:"flex",flexDirection:"column",position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)"}}>
-        {/* Marca */}
-        <div style={{padding:".6rem 1.2rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--gold)",letterSpacing:".12em"}}>GCRent</span>
-          <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".72rem",padding:".22rem .6rem",borderRadius:6,cursor:"pointer",letterSpacing:".04em"}}>Salir</button>
+        <div style={{padding:".5rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)",letterSpacing:".12em"}}>GCRent</span>
+          <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".8rem",padding:".25rem .65rem",borderRadius:6,cursor:"pointer"}}>Salir</button>
         </div>
-        {/* Botones */}
-        <div style={{display:"flex",overflowX:"auto",padding:".5rem .8rem",gap:".4rem",scrollbarWidth:"none"}}>
+        <div style={{display:"grid",gridTemplateColumns:`repeat(${navItems.length},1fr)`,padding:".4rem .6rem",gap:".35rem"}}>
           {navItems.map(n=>{
             const activo=seccion===n.id;
             return(
               <button key={n.id} onClick={()=>setSeccion(n.id)} style={{
-                display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
-                padding:".55rem .9rem",borderRadius:10,border:"none",cursor:"pointer",
+                padding:".6rem .3rem",borderRadius:10,border:"none",cursor:"pointer",
                 background:activo?"var(--bronze)":"rgba(255,255,255,.07)",
                 color:activo?"#fff":"#BBA990",
-                fontFamily:"'DM Sans',sans-serif",fontSize:".72rem",fontWeight:activo?700:500,
-                letterSpacing:".04em",whiteSpace:"nowrap",minWidth:72,
-                transition:"background .18s,color .18s",
+                fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:activo?700:500,
+                whiteSpace:"nowrap",textAlign:"center",
                 boxShadow:activo?"0 2px 10px rgba(176,125,78,.4)":"none",
+                transition:"background .18s",
               }}>{n.l}</button>
             );
           })}
