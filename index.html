@@ -549,19 +549,37 @@ function App(){
   if(loading)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:"var(--bronze)"}}>Cargando datos…</div>;
 
   const navItems=rol==="admin"
-    ?[{id:"agenda",l:"📅 Agenda"},{id:"calendario",l:"🗓 Cal."},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"buscar",l:"🔍 Buscar"}]
+    ?[{id:"agenda",l:"📅 Agenda"},{id:"calendario",l:"🗓 Calendario"},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"buscar",l:"🔍 Buscar"}]
     :rol==="transportista"
     ?[{id:"logistica",l:"🚚 Entregas"},{id:"semana",l:"💰 Mi semana"}]
     :[{id:"calendario_cliente",l:"📅 Mi calendario"},{id:"buscar_cliente",l:"🔍 Mis reservas"}];
 
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
-      <nav style={{background:"var(--dark)",padding:"0 1rem",display:"flex",alignItems:"center",minHeight:52,position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)",gap:".05rem",flexWrap:"wrap"}}>
-        <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.2rem",color:"var(--gold)",marginRight:"auto",letterSpacing:".1em"}}>GCRent</span>
-        {navItems.map(n=>(
-          <button key={n.id} onClick={()=>setSeccion(n.id)} style={{background:"none",border:"none",color:seccion===n.id?"var(--gold)":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".68rem",letterSpacing:".06em",textTransform:"uppercase",padding:".32rem .55rem",cursor:"pointer",borderBottom:seccion===n.id?"2px solid var(--gold)":"2px solid transparent",whiteSpace:"nowrap"}}>{n.l}</button>
-        ))}
-        <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #444",color:"#888",fontSize:".65rem",padding:".18rem .48rem",borderRadius:5,cursor:"pointer",marginLeft:".4rem"}}>Salir</button>
+      <nav style={{background:"var(--dark)",padding:"0",display:"flex",flexDirection:"column",position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)"}}>
+        {/* Marca */}
+        <div style={{padding:".6rem 1.2rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--gold)",letterSpacing:".12em"}}>GCRent</span>
+          <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".72rem",padding:".22rem .6rem",borderRadius:6,cursor:"pointer",letterSpacing:".04em"}}>Salir</button>
+        </div>
+        {/* Botones */}
+        <div style={{display:"flex",overflowX:"auto",padding:".5rem .8rem",gap:".4rem",scrollbarWidth:"none"}}>
+          {navItems.map(n=>{
+            const activo=seccion===n.id;
+            return(
+              <button key={n.id} onClick={()=>setSeccion(n.id)} style={{
+                display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+                padding:".55rem .9rem",borderRadius:10,border:"none",cursor:"pointer",
+                background:activo?"var(--bronze)":"rgba(255,255,255,.07)",
+                color:activo?"#fff":"#BBA990",
+                fontFamily:"'DM Sans',sans-serif",fontSize:".72rem",fontWeight:activo?700:500,
+                letterSpacing:".04em",whiteSpace:"nowrap",minWidth:72,
+                transition:"background .18s,color .18s",
+                boxShadow:activo?"0 2px 10px rgba(176,125,78,.4)":"none",
+              }}>{n.l}</button>
+            );
+          })}
+        </div>
       </nav>
 
       <main style={{flex:1,padding:"1rem 1.1rem",maxWidth:1180,margin:"0 auto",width:"100%"}}>
