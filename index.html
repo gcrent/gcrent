@@ -90,16 +90,17 @@ const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.desc
 
 // ── Chequeo de conflicto horario ──────────────────────────────────────────────
 function tieneConflicto(reservas, equipoId, fecha, horaEntrega, horaRetiro, excludeId){
-  const eId=parseInt(equipoId,10);
+  const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
   const hE=horaEntrega||"00:00";
   const hR=horaRetiro||"23:59";
   for(let i=0;i<reservas.length;i++){
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
-    if(excludeId&&r.id===excludeId)continue;
-    if(r.equipoId!==eId)continue;
-    if(r.fecha!==fecha)continue;
+    if(excludeId!=null&&r.id===excludeId)continue;
+    const rEqId=parseInt(String(r.equipoId),10);
+    if(rEqId!==eId)continue;
+    if(String(r.fecha)!==String(fecha))continue;
     const rE=r.horaEntrega||"00:00";
     const rR=r.horaRetiro||"23:59";
     if(hE<rR&&hR>rE)return true;
