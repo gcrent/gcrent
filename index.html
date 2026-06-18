@@ -845,8 +845,15 @@ function App(){
 
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
           const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,6);
-          const inicioMes=new Date(hoy.getFullYear(),hoy.getMonth(),1),finMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0);
-          const enPeriodo=r=>{const d=new Date(r.fecha+"T12:00");return periodoTransp==="semana"?d>=inicioSem&&d<=finSemT:d>=inicioMes&&d<=finMes;};
+          const inicioPeriodo=periodoTransp==="semana"?inicioSem
+            :periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1)
+            :periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1)
+            :addD(hoy,-365);
+          const finPeriodo=periodoTransp==="semana"?finSemT
+            :periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0)
+            :periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0)
+            :hoy;
+          const enPeriodo=r=>{const d=new Date(r.fecha+"T12:00");return d>=inicioPeriodo&&d<=finPeriodo;};
           const pend=reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
           const enEst=reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
           const ret=reservas.filter(r=>r.estado==="completado"&&enPeriodo(r));
@@ -855,8 +862,9 @@ function App(){
           return(<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>🚚 Mis Entregas</h2>
             <div style={{display:"flex",gap:".5rem",marginBottom:".8rem",flexWrap:"wrap"}}>
-              {btn(periodoTransp==="semana"?"📅 Esta semana ✓":"📅 Esta semana",()=>setPeriodoTransp("semana"),periodoTransp==="semana"?"var(--dark)":"var(--sand)",periodoTransp==="semana"?"#fff":"var(--mid)")}
-              {btn(periodoTransp==="mes"?"🗓 Este mes ✓":"🗓 Este mes",()=>setPeriodoTransp("mes"),periodoTransp==="mes"?"var(--dark)":"var(--sand)",periodoTransp==="mes"?"#fff":"var(--mid)")}
+              {[{k:"semana",l:"📅 Esta semana"},{k:"mes",l:"🗓 Este mes"},{k:"2meses",l:"📆 2 meses"},{k:"anio",l:"🗂 Último año"}].map(p=>(
+                <button key={p.k} onClick={()=>setPeriodoTransp(p.k)} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp===p.k?"var(--dark)":"var(--sand)",color:periodoTransp===p.k?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>{p.l}{periodoTransp===p.k?" ✓":""}</button>
+              ))}
             </div>
             <div style={{background:"linear-gradient(135deg,var(--blue),#1a4a6e)",color:"#fff",borderRadius:14,padding:"1rem 1.3rem",marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".5rem"}}>
               <div>
