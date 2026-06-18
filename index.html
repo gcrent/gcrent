@@ -259,6 +259,17 @@ function App(){
     })();
   },[rol]);
 
+  const hayConflicto=(equipoId,fecha,horaEntrega,horaRetiro,excludeId=null)=>{
+    if(!equipoId||!fecha||!horaEntrega||!horaRetiro)return false;
+    return reservas.some(r=>{
+      if(r.estado==="cancelado")return false;
+      if(excludeId&&r.id===excludeId)return false;
+      if(r.equipoId!==+equipoId||r.fecha!==fecha)return false;
+      // Solapamiento: entrega nueva < retiro existente Y retiro nueva > entrega existente
+      return horaEntrega<(r.horaRetiro||"99:99")&&horaRetiro>(r.horaEntrega||"00:00");
+    });
+  };
+
   const guardarReserva=async()=>{
     if(!form.clienteNombre||!form.fecha){showToast("⚠️ Completá nombre y fecha");return;}
     const monto=+form.monto;
@@ -294,6 +305,10 @@ function App(){
   const guardarEdicion=async()=>{
     if(!form.fecha){showToast("⚠️ Fecha requerida");return;}
     const monto=+form.monto||editRes.monto;
+    // Validar conflicto al editar
+    if(!form.usarCombo&&hayConflicto(form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){
+      showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;
+    }
     const updated={...editRes,clienteNombre:form.clienteNombre,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,
       equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,
       fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,
