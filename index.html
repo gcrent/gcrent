@@ -362,13 +362,30 @@ function App(){
     if(reservas.some(r=>r.equipoId===id&&r.estado!=="cancelado")){showToast("⚠️ Tiene reservas activas");return;}
     setEquipos(es=>es.filter(e=>e.id!==id));showToast("🗑️ Eliminado");
   };
+  const [editCombo,setEditCombo]=useState(null);
+
+  const eliminarCombo=async id=>{
+    if(reservas.some(r=>r.comboId===id&&r.estado!=="cancelado")){showToast("⚠️ Tiene reservas activas");return;}
+    const{error}=await supa.from("combos").delete().eq("id",id);
+    if(error){showToast("❌ "+error.message);return;}
+    setCombos(cs=>cs.filter(c=>c.id!==id));showToast("🗑️ Combo eliminado");
+  };
   const guardarCombo=async()=>{
     if(!comboForm.nombre||comboForm.equipoIds.length<2){showToast("⚠️ Nombre y al menos 2 equipos");return;}
-    const nuevo={id:`c${genId()}`,nombre:comboForm.nombre,desc:comboForm.desc,precio:+comboForm.precio||0,equipoIds:comboForm.equipoIds.map(Number)};
-    const{error}=await supa.from("combos").insert(cToDb(nuevo));
-    if(error){showToast("❌ "+error.message);return;}
-    setCombos(c=>[...c,nuevo]);
-    setModal(null);setComboForm({nombre:"",equipoIds:[],desc:"",precio:""});showToast("📦 Combo creado");
+    if(editCombo){
+      const updated={...editCombo,nombre:comboForm.nombre,desc:comboForm.desc,precio:+comboForm.precio||0,equipoIds:comboForm.equipoIds.map(Number)};
+      const{error}=await supa.from("combos").update(cToDb(updated)).eq("id",editCombo.id);
+      if(error){showToast("❌ "+error.message);return;}
+      setCombos(cs=>cs.map(c=>c.id===editCombo.id?updated:c));
+      showToast("✅ Combo actualizado");
+    } else {
+      const nuevo={id:`c${genId()}`,nombre:comboForm.nombre,desc:comboForm.desc,precio:+comboForm.precio||0,equipoIds:comboForm.equipoIds.map(Number)};
+      const{error}=await supa.from("combos").insert(cToDb(nuevo));
+      if(error){showToast("❌ "+error.message);return;}
+      setCombos(c=>[...c,nuevo]);
+      showToast("📦 Combo creado");
+    }
+    setModal(null);setComboForm({nombre:"",equipoIds:[],desc:"",precio:""});setEditCombo(null);
   };
   const crearPromo=async()=>{
     if(!promoForm.titulo){showToast("⚠️ Título requerido");return;}
@@ -626,9 +643,32 @@ function App(){
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>Catálogo — {equipos.length} equipos</h2>
             <div style={{display:"flex",gap:".5rem"}}>
               {btn("+ Nuevo equipo",()=>{setEditEquipo(null);setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:""});setModal("equipo");},"var(--bronze)")}
-              {btn("📦 Nuevo combo",()=>setModal("combo"),"var(--teal)")}
+              {btn("📦 Nuevo combo",()=>{setEditCombo(null);setComboForm({nombre:"",equipoIds:[],desc:"",precio:""});setModal("combo");},"var(--teal)")}
             </div>
           </div>
+
+          {/* Combos */}
+          {combos.length>0&&(<>
+            <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",color:"var(--teal)",marginBottom:".6rem"}}>📦 Combos</h3>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"1rem",marginBottom:"1.2rem"}}>
+              {combos.map(c=>(
+                <div key={c.id} style={{background:"#fff",border:"2px solid #99E6D8",borderRadius:14,overflow:"hidden"}}>
+                  <div style={{height:60,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.6rem",background:"linear-gradient(135deg,#CCFBF1,var(--teal))"}}>📦</div>
+                  <div style={{padding:".75rem"}}>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",marginBottom:".15rem"}}>{c.nombre}</div>
+                    <div style={{fontSize:".72rem",color:"var(--mid)",marginBottom:".2rem"}}>{c.equipoIds.map(id=>equipos.find(e=>e.id===id)?.nombre||id).join(" · ")}</div>
+                    <div style={{fontWeight:700,color:"var(--teal)",fontSize:".9rem",marginBottom:".4rem"}}>${c.precio.toLocaleString()}</div>
+                    <div style={{display:"flex",gap:".35rem"}}>
+                      <button onClick={()=>{setEditCombo(c);setComboForm({nombre:c.nombre,equipoIds:c.equipoIds,desc:c.desc||"",precio:String(c.precio)});setModal("combo");}} style={{flex:1,padding:".22rem 0",fontSize:".72rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}}>✏️ Editar</button>
+                      <button onClick={()=>eliminarCombo(c.id)} style={{flex:1,padding:".22rem 0",fontSize:".72rem",borderRadius:6,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer"}}>🗑️ Borrar</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>)}
+
+          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",color:"var(--mid)",marginBottom:".6rem"}}>Equipos individuales</h3>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:"1rem"}}>
             {equipos.map(e=>{
               const ocio=equiposOciosos.find(x=>x.id===e.id);
@@ -955,7 +995,7 @@ function App(){
 
       {modal==="combo"&&(
         <Overlay onClose={()=>setModal(null)} maxW={480}>
-          <div style={{...S.mh,position:"sticky",top:0,zIndex:10}}>📦 Nuevo Combo <CloseBtn onClose={()=>setModal(null)}/></div>
+          <div style={{...S.mh,position:"sticky",top:0,zIndex:10}}>{editCombo?"✏️ Editar Combo":"📦 Nuevo Combo"} <CloseBtn onClose={()=>{setModal(null);setEditCombo(null);}}/></div>
           <div style={{padding:"1.2rem"}}>
             <div style={S.fg}><label style={S.lbl}>Nombre</label><input value={comboForm.nombre} onChange={e=>setComboForm(f=>({...f,nombre:e.target.value}))} style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Precio especial</label><input type="number" value={comboForm.precio} onChange={e=>setComboForm(f=>({...f,precio:e.target.value}))} style={S.inp}/></div>
