@@ -545,10 +545,9 @@ function App(){
               <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{badge(r.estado)}</td>
               {acciones&&<td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>
                 <div style={{display:"flex",gap:".2rem",flexWrap:"wrap"}}>
-                  {r.estado==="aceptada"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"seña",{senia:Math.round(r.monto*.3)})}>💳</button>}
                   {["seña","activo"].includes(r.estado)&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"completado")}>✅</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>✏️</button>}
-                  {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋 Duplicar</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>✕</button>}
                 </div>
               </td>}
