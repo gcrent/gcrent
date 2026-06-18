@@ -141,7 +141,7 @@ function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId
   for(let i=0;i<reservas.length;i++){
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
-    if(excludeId!=null&&r.id===excludeId)continue;
+    if(excludeId!=null&&String(r.id)===String(excludeId))continue;
     if(parseInt(String(r.equipoId),10)!==eId)continue;
     if(String(r.fecha)!==String(fecha))continue;
     const rE=r.horaEntrega||"00:00",rR=r.horaRetiro||"23:59";
