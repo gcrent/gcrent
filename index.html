@@ -313,18 +313,26 @@ function App(){
     })();
   },[rol]);
 
+  const reservasRef=React.useRef(reservas);
+  useEffect(()=>{reservasRef.current=reservas;},[reservas]);
+
   const hayConflicto=(equipoId,fecha,horaEntrega,horaRetiro,excludeId=null)=>{
     if(!equipoId||!fecha)return false;
     const hEnt=horaEntrega||"00:00";
     const hRet=horaRetiro||"23:59";
-    return reservas.some(r=>{
-      if(r.estado==="cancelado")return false;
-      if(excludeId&&r.id===excludeId)return false;
-      if(r.equipoId!==+equipoId||r.fecha!==fecha)return false;
+    const lista=reservasRef.current;
+    for(const r of lista){
+      if(r.estado==="cancelado")continue;
+      if(excludeId&&r.id===excludeId)continue;
+      if(r.equipoId!==+equipoId||r.fecha!==fecha)continue;
       const rEnt=r.horaEntrega||"00:00";
       const rRet=r.horaRetiro||"23:59";
-      return hEnt<rRet&&hRet>rEnt;
-    });
+      if(hEnt<rRet&&hRet>rEnt){
+        console.log("CONFLICTO:",r.clienteNombre,r.fecha,rEnt,rRet,"vs",hEnt,hRet);
+        return true;
+      }
+    }
+    return false;
   };
 
   const guardarReserva=async()=>{
