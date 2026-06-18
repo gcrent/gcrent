@@ -220,7 +220,14 @@ function App(){
   const eq=id=>equipos.find(e=>e.id===+id);
   const IL=r=>iLabel(r,combos,equipos);
   const RC=r=>getColors(r,combos);
-  const clientes=useMemo(()=>[...new Map(reservas.map(r=>[r.clienteEmail,r.clienteNombre])).entries()],[reservas]);
+  const clientes=useMemo(()=>{
+    const m=new Map();
+    reservas.forEach(r=>{
+      const k=r.clienteTel||r.clienteEmail||r.clienteNombre;
+      if(k&&!m.has(k)) m.set(k,r.clienteNombre);
+    });
+    return [...m.entries()];
+  },[reservas]);
 
   const intentarLogin=key=>{
     if(key==="cliente"){setLoginStep("cliente");setClienteTelLogin("");setClientePassLogin("");setClienteLoginError(false);return;}
@@ -397,10 +404,10 @@ function App(){
 
   const reservasFiltradas=useMemo(()=>{
     let rs=[...reservas];
-    if(filtroC)rs=rs.filter(r=>r.clienteEmail===filtroC);
-    if(filtroE)rs=rs.filter(r=>r.equipoId===+filtroE);
-    if(filtroEst)rs=rs.filter(r=>r.estado===filtroEst);
-    if(filterMes)rs=rs.filter(r=>mesKey(r.fecha)===filterMes);
+    if(filtroC) rs=rs.filter(r=>r.clienteEmail===filtroC||r.clienteTel===filtroC||r.clienteNombre===filtroC);
+    if(filtroE) rs=rs.filter(r=>r.equipoId===+filtroE);
+    if(filtroEst) rs=rs.filter(r=>r.estado===filtroEst);
+    if(filterMes) rs=rs.filter(r=>mesKey(r.fecha)===filterMes);
     return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));
   },[reservas,filtroC,filtroE,filtroEst,filterMes]);
 
