@@ -107,8 +107,10 @@ const Overlay=({onClose,children,maxW=540})=>(
   </div>
 );
 
-function FormReserva({titulo,form,fv,promos,combos,equipos,onSubmit,onCancel,submitLabel="Guardar"}){
+function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,onSubmit,onCancel,submitLabel="Guardar"}){
   const promoActiva=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
+
+  // Sugerir precio al cambiar equipo/combo
   useEffect(()=>{
     if(form.usarCombo){
       const c=combos.find(x=>x.id===form.comboId);
@@ -122,13 +124,51 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,onSubmit,onCancel,sub
     }
   },[form.equipoId,form.comboId,form.usarCombo]);
 
+  // Autocompletar cliente por teléfono
+  const autocompletar=tel=>{
+    fv("clienteTel",tel);
+    if(tel.length>=6){
+      const encontrado=reservas.find(r=>r.clienteTel===tel);
+      if(encontrado){
+        fv("clienteNombre",encontrado.clienteNombre);
+        fv("clienteEmail",encontrado.clienteEmail||"");
+        fv("direccion",encontrado.direccion||"");
+      }
+    }
+  };
+
+  // Lista de clientes únicos para sugerencias
+  const clientesUnicos=useMemo(()=>{
+    const m=new Map();
+    reservas.forEach(r=>{if(r.clienteTel)m.set(r.clienteTel,r);});
+    return [...m.values()];
+  },[reservas]);
+
+  const sugerencias=form.clienteTel.length>=3
+    ?clientesUnicos.filter(r=>r.clienteTel.includes(form.clienteTel)&&r.clienteTel!==form.clienteTel).slice(0,4)
+    :[];
+
   return(
     <Overlay onClose={onCancel}>
       <div style={S.mh}>{titulo} <CloseBtn onClose={onCancel}/></div>
       <div style={{padding:"1.2rem"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
           <div style={S.fg}><label style={S.lbl}>Nombre clienta</label><input value={form.clienteNombre} onChange={e=>fv("clienteNombre",e.target.value)} placeholder="María González" style={S.inp}/></div>
-          <div style={S.fg}><label style={S.lbl}>Teléfono</label><input value={form.clienteTel} onChange={e=>fv("clienteTel",e.target.value)} placeholder="5491122334455" style={S.inp}/></div>
+          <div style={S.fg}><label style={S.lbl}>Teléfono</label>
+          <div style={{position:"relative"}}>
+            <input value={form.clienteTel} onChange={e=>autocompletar(e.target.value)} placeholder="5491122334455" style={S.inp}/>
+            {sugerencias.length>0&&(
+              <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1.5px solid var(--bronze)",borderRadius:8,zIndex:50,boxShadow:"0 4px 16px rgba(0,0,0,.12)",overflow:"hidden"}}>
+                {sugerencias.map(r=>(
+                  <div key={r.clienteTel} onClick={()=>{fv("clienteTel",r.clienteTel);fv("clienteNombre",r.clienteNombre);fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");}} style={{padding:".55rem .8rem",cursor:"pointer",borderBottom:"1px solid var(--sand)",fontSize:".85rem",display:"flex",flexDirection:"column",gap:".08rem"}} onMouseEnter={e=>e.currentTarget.style.background="var(--cream)"} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
+                    <strong>{r.clienteNombre}</strong>
+                    <span style={{fontSize:".75rem",color:"var(--mid)"}}>{r.clienteTel}{r.clienteEmail?` · ${r.clienteEmail}`:""}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
         </div>
         <div style={S.fg}><label style={S.lbl}>Email</label><input type="email" value={form.clienteEmail} onChange={e=>fv("clienteEmail",e.target.value)} placeholder="mail@mail.com" style={S.inp}/></div>
         <div style={S.fg}>
@@ -928,8 +968,8 @@ function App(){
       </main>
 
       {/* MODALES */}
-      {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
-      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios"/>}
+      {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
+      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios"/>}
 
       {modal==="equipo"&&(
         <Overlay onClose={()=>{setModal(null);setEditEquipo(null);}} maxW={420}>
