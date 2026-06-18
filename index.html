@@ -13,7 +13,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     html,body{overflow-x:hidden;width:100%}
-    :root{--cream:#FAF8F5;--sand:#EDE5D8;--bronze:#B07D4E;--rust:#8C4A2F;--dark:#18120C;--mid:#5C4A3A;--light:#F2EDE5;--green:#3D7A5C;--red:#B83232;--gold:#C9963A;--blue:#2A5F8A;--purple:#6B4C9A;--teal:#2A7A7A;}
+    :root{--cream:#FAF8F5;--sand:#EDE5D8;--bronze:#B07D4E;--dark:#18120C;--mid:#5C4A3A;--light:#F2EDE5;--green:#3D7A5C;--red:#B83232;--gold:#C9963A;--blue:#2A5F8A;--purple:#6B4C9A;--teal:#2A7A7A;}
     body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--dark);font-size:18px;-webkit-text-size-adjust:none;text-size-adjust:none}
     #root{min-height:100vh}
   </style>
@@ -26,7 +26,7 @@
   const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 </script>
 <script type="text/babel">
-const {useState,useEffect,useMemo,useCallback,useRef}=React;
+const {useState,useEffect,useMemo,useCallback}=React;
 
 const EQUIPOS_BASE=[
   {id:1,nombre:"HIFU 12D Promax",emoji:"🎯",desc:"Lifting facial.",precio:250000},
@@ -47,59 +47,40 @@ const EQUIPOS_BASE=[
   {id:16,nombre:"Vela Velvet Max",emoji:"🌀",desc:"Velvet Max.",precio:32000},
   {id:17,nombre:"Onda de Choque",emoji:"💥",desc:"Ondas terapéuticas.",precio:30000},
 ];
+
 const EQ_COLORS=["#E07B54","#7B9E87","#5B8DB8","#C4A35A","#B56576","#6B8FAB","#8B7355","#7E9B6E","#9B6B8A","#5B8A8A","#C47C5A","#7B6B9E","#8A6B5B","#6B9B7E","#9E6B6B","#7A5B8A","#5B7A6B","#A07050","#607090","#809060"];
 const eqColor=id=>EQ_COLORS[(id-1)%EQ_COLORS.length]||"#888";
+
+const CLAVES={admin:"Veinticuatro24",transportista:"marce26"};
+const TARIFA_BASE=8000;
+
 const LOCALIDADES={
-  "Resistencia, Chaco":"zona1",
-  "Fontana, Chaco":"zona1",
-  "Barranqueras, Chaco":"zona1",
-  "Corrientes":"zona2",
-  "Puerto Tirol, Chaco":"zona2",
-  "Margarita Belén, Chaco":"zona2",
-  "Colonia Benítez, Chaco":"zona2",
+  "Resistencia, Chaco":"zona1","Fontana, Chaco":"zona1","Barranqueras, Chaco":"zona1",
+  "Corrientes":"zona2","Puerto Tirol, Chaco":"zona2","Margarita Belén, Chaco":"zona2","Colonia Benítez, Chaco":"zona2",
 };
 
-const TARIFAS_BASE={
-  zona1:{
-    mio_up:8000,
-    criofraxis:7000,
-    laser:11000,
-    teslagen_vela_ondas:6500,
-    hifu_hollywood:8000,
-    default:7000,
-  },
-  zona2:{
-    mio_up:9000,
-    criofraxis:8000,
-    laser:12000,
-    teslagen_vela_ondas:7500,
-    hifu_hollywood:9000,
-    default:8000,
-  }
+const TARIFAS_INIT={
+  zona1:{mio_up:8000,criofraxis:7000,laser:11000,teslagen_vela_ondas:6500,hifu_hollywood:8000,default:7000},
+  zona2:{mio_up:9000,criofraxis:8000,laser:12000,teslagen_vela_ondas:7500,hifu_hollywood:9000,default:8000},
 };
 
-const getGrupoEquipo=id=>{
-  const grupos={
-    mio_up:[8,9],
-    criofraxis:[10,12],
-    laser:[2,3,4,5,6,7],
-    teslagen_vela_ondas:[11,13,14,15,16,17],
-    hifu_hollywood:[1,3],
-  };
-  for(const[grupo,ids]of Object.entries(grupos)){
-    if(ids.includes(+id))return grupo;
-  }
+const GRUPOS_EQUIPO={
+  mio_up:[8,9],criofraxis:[10,12],laser:[2,4,5,6,7],
+  teslagen_vela_ondas:[11,13,14,15,16,17],hifu_hollywood:[1,3],
+};
+
+const getGrupo=id=>{
+  for(const[g,ids]of Object.entries(GRUPOS_EQUIPO)){if(ids.includes(+id))return g;}
   return"default";
 };
 
-const calcTarifaTransporte=(equipoId,localidad,tarifas)=>{
+const calcTarifa=(equipoId,localidad,tarifas)=>{
   if(!localidad||!equipoId)return null;
   const zona=LOCALIDADES[localidad];
   if(!zona)return null;
-  const grupo=getGrupoEquipo(equipoId);
-  return tarifas[zona][grupo]||tarifas[zona].default;
+  return tarifas[zona][getGrupo(equipoId)]||tarifas[zona].default;
 };
-const TARIFA_BASE=8000;
+
 const hoy=new Date();hoy.setHours(0,0,0,0);
 const fmt=d=>{const x=new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
 const fmtVis=d=>{if(!d)return"—";const[y,m,dia]=d.split("-");return`${dia}-${m}-${y.slice(2)}`;};
@@ -112,6 +93,7 @@ const semLabel=l=>{const d=addD(l,6);return`${l.getDate()} ${MESES[l.getMonth()]
 const mesKey=d=>`${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}`;
 const estadoLabel=e=>({aceptada:"Aceptada",seña:"Con seña",activo:"Activo",completado:"Completado",cancelado:"Cancelado"})[e]||e;
 const genId=()=>Date.now()+Math.floor(Math.random()*1000);
+
 const genRecs=(base,rep,cant=12)=>{
   if(!rep||rep==="none")return[];
   return Array.from({length:cant},(_,i)=>{
@@ -122,6 +104,7 @@ const genRecs=(base,rep,cant=12)=>{
     return{...base,id:genId(),fecha:f,senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id};
   });
 };
+
 const getColors=(r,combos)=>{
   if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}
   return r.equipoId?[eqColor(r.equipoId)]:["#888"];
@@ -130,28 +113,38 @@ const iLabel=(r,combos,equipos)=>{
   if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`📦 ${c.nombre}`:"Combo";}
   const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";
 };
-const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte||TARIFA_BASE,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null});
-const fromDb=r=>({id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo});
+
+const toDb=r=>({
+  id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",
+  equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,
+  hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,
+  monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",
+  tarifa_transporte:r.tarifaTransporte||TARIFA_BASE,repeticion:r.repeticion||"none",
+  es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null,
+});
+const fromDb=r=>({
+  id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,
+  equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,
+  estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",
+  tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,
+  esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo,
+});
 const cToDb=c=>({id:c.id,nombre:c.nombre,descripcion:c.desc||"",precio:c.precio,equipo_ids:c.equipoIds});
 const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,equipoIds:c.equipo_ids||[]});
 const pToDb=p=>({id:p.id,equipo_id:p.equipoId,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 
-// ── Chequeo de conflicto horario ──────────────────────────────────────────────
-function tieneConflicto(reservas, equipoId, fecha, horaEntrega, horaRetiro, excludeId){
+function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId){
   const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
-  const hE=horaEntrega||"00:00";
-  const hR=horaRetiro||"23:59";
+  const hE=horaEntrega||"00:00",hR=horaRetiro||"23:59";
   for(let i=0;i<reservas.length;i++){
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
     if(excludeId!=null&&r.id===excludeId)continue;
-    const rEqId=parseInt(String(r.equipoId),10);
-    if(rEqId!==eId)continue;
+    if(parseInt(String(r.equipoId),10)!==eId)continue;
     if(String(r.fecha)!==String(fecha))continue;
-    const rE=r.horaEntrega||"00:00";
-    const rR=r.horaRetiro||"23:59";
+    const rE=r.horaEntrega||"00:00",rR=r.horaRetiro||"23:59";
     if(hE<rR&&hR>rE)return true;
   }
   return false;
@@ -164,6 +157,7 @@ const S={
   mh:{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",display:"flex",justifyContent:"space-between",alignItems:"center"},
   mf:{padding:".85rem 1.2rem",borderTop:"1px solid var(--sand)",display:"flex",gap:".5rem",justifyContent:"flex-end"},
 };
+
 const CloseBtn=({onClose})=><button onClick={onClose} style={{background:"none",border:"none",color:"var(--cream)",cursor:"pointer",fontSize:"1.2rem"}}>✕</button>;
 const Overlay=({onClose,children,maxW=540})=>(
   <div style={{position:"fixed",inset:0,background:"rgba(24,18,12,.65)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"1rem"}} onClick={onClose}>
@@ -173,7 +167,7 @@ const Overlay=({onClose,children,maxW=540})=>(
   </div>
 );
 
-function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,onSubmit,onCancel,submitLabel="Guardar"}){
+function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,onSubmit,onCancel,submitLabel}){
   const promoActiva=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
 
   useEffect(()=>{
@@ -189,10 +183,9 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     }
   },[form.equipoId,form.comboId,form.usarCombo]);
 
-  // Autocalcular tarifa cuando cambia equipo o localidad
   useEffect(()=>{
     if(!form.usarCombo&&form.localidad&&form.equipoId){
-      const t=calcTarifaTransporte(form.equipoId,form.localidad,tarifas);
+      const t=calcTarifa(form.equipoId,form.localidad,tarifas);
       if(t)fv("tarifaTransporte",String(t));
     }
   },[form.equipoId,form.localidad,form.usarCombo]);
@@ -212,9 +205,12 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     return[...m.values()].filter(r=>r.clienteNombre.toLowerCase().includes(form.clienteNombre.toLowerCase())&&r.clienteNombre!==form.clienteNombre).slice(0,5);
   },[form.clienteNombre,reservas]);
 
-  const selCliente=r=>{fv("clienteNombre",r.clienteNombre);fv("clienteTel",r.clienteTel||"");fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");fv("localidad",r.localidad||"");};
+  const selCliente=r=>{
+    fv("clienteNombre",r.clienteNombre);fv("clienteTel",r.clienteTel||"");
+    fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");fv("localidad",r.localidad||"");
+  };
 
-  const conflictoEnVivo=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId);
+  const conflicto=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId);
 
   return(
     <Overlay onClose={onCancel}>
@@ -265,10 +261,10 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
           <div style={S.fg}><label style={S.lbl}>📍 Localidad</label>
             <select value={form.localidad} onChange={e=>fv("localidad",e.target.value)} style={S.inp}>
               <option value="">Seleccioná localidad</option>
-              <optgroup label="Zona 1">
+              <optgroup label="— Zona 1 —">
                 {["Resistencia, Chaco","Fontana, Chaco","Barranqueras, Chaco"].map(l=><option key={l} value={l}>{l}</option>)}
               </optgroup>
-              <optgroup label="Zona 2 (+$1.000)">
+              <optgroup label="— Zona 2 (+$1.000) —">
                 {["Corrientes","Puerto Tirol, Chaco","Margarita Belén, Chaco","Colonia Benítez, Chaco"].map(l=><option key={l} value={l}>{l}</option>)}
               </optgroup>
             </select>
@@ -281,7 +277,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
           <div style={S.fg}><label style={S.lbl}>Seña {promoActiva?"(mín 30%)":"(opcional)"}</label><input type="number" value={form.senia} onChange={e=>fv("senia",e.target.value)} placeholder="0" style={S.inp}/></div>
           <div style={S.fg}>
-            <label style={S.lbl}>💙 Tarifa transporte {form.localidad?`(${LOCALIDADES[form.localidad]==="zona1"?"Zona 1":"Zona 2"} — editable)":"(editable)"}</label>
+            <label style={S.lbl}>💙 Tarifa transporte{form.localidad?` (${LOCALIDADES[form.localidad]==="zona1"?"Zona 1":"Zona 2"} — editable)`:""}</label>
             <input type="number" value={form.tarifaTransporte} onChange={e=>fv("tarifaTransporte",e.target.value)} style={{...S.inp,color:"var(--blue)",fontWeight:700}}/>
           </div>
         </div>
@@ -293,118 +289,12 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
             <option value="mensual">Mensual (12 mes.)</option>
           </select>
         </div>
-        {conflictoEnVivo&&<div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:".5rem"}}>❌ Ese equipo ya tiene una reserva en ese horario ese día</div>}
+        {conflicto&&<div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:".5rem"}}>❌ Ese equipo ya tiene una reserva en ese horario ese día</div>}
         {promoActiva&&<div style={{background:"#EDE9FE",border:"1.5px solid var(--purple)",borderRadius:10,padding:".5rem .8rem",fontSize:".85rem",color:"#4C1D95"}}>🎁 Promo activa — seña mínima 30%</div>}
       </div>
       <div style={S.mf}>
         <button onClick={onCancel} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
-        <button onClick={onSubmit} disabled={conflictoEnVivo} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:conflictoEnVivo?"#ccc":"var(--bronze)",color:"#fff",cursor:conflictoEnVivo?"not-allowed":"pointer",fontSize:".9rem",fontWeight:600}}>{submitLabel}</button>
-      </div>
-    </Overlay>
-  );
-}
-  const promoActiva=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
-
-  useEffect(()=>{
-    if(form.usarCombo){
-      const c=combos.find(x=>x.id===form.comboId);
-      if(c)fv("monto",String(c.precio));
-    } else {
-      const e=equipos.find(x=>x.id===+form.equipoId);
-      if(e){
-        const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);
-        fv("monto",String(p?Math.round(e.precio*(1-p.descuento/100)):e.precio));
-      }
-    }
-  },[form.equipoId,form.comboId,form.usarCombo]);
-
-  const autoHoraRetiro=val=>{
-    fv("horaEntrega",val);
-    if(val){
-      const[h,m]=val.split(":").map(Number);
-      fv("horaRetiro",`${String((h+12)%24).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
-    }
-  };
-
-  const sugerencias=useMemo(()=>{
-    if(form.clienteNombre.length<2)return[];
-    const m=new Map();
-    reservas.forEach(r=>{if(r.clienteNombre)m.set(r.clienteNombre,r);});
-    return[...m.values()].filter(r=>r.clienteNombre.toLowerCase().includes(form.clienteNombre.toLowerCase())&&r.clienteNombre!==form.clienteNombre).slice(0,5);
-  },[form.clienteNombre,reservas]);
-
-  const selCliente=r=>{fv("clienteNombre",r.clienteNombre);fv("clienteTel",r.clienteTel||"");fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");};
-
-  // Mostrar advertencia de conflicto en tiempo real
-  const conflictoEnVivo=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId);
-
-  return(
-    <Overlay onClose={onCancel}>
-      <div style={S.mh}>{titulo} <CloseBtn onClose={onCancel}/></div>
-      <div style={{padding:"1.2rem"}}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}>
-            <label style={S.lbl}>Nombre clienta</label>
-            <div style={{position:"relative"}}>
-              <input value={form.clienteNombre} onChange={e=>fv("clienteNombre",e.target.value)} placeholder="María González" style={S.inp}/>
-              {sugerencias.length>0&&(
-                <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1.5px solid var(--bronze)",borderRadius:8,zIndex:50,boxShadow:"0 4px 16px rgba(0,0,0,.12)",overflow:"hidden"}}>
-                  {sugerencias.map(r=>(
-                    <div key={r.id} onClick={()=>selCliente(r)} style={{padding:".55rem .8rem",cursor:"pointer",borderBottom:"1px solid var(--sand)",fontSize:".85rem"}} onMouseEnter={e=>e.currentTarget.style.background="var(--cream)"} onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-                      <strong>{r.clienteNombre}</strong>
-                      <div style={{fontSize:".75rem",color:"var(--mid)"}}>{r.clienteTel||""}{r.clienteEmail?` · ${r.clienteEmail}`:""}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <div style={S.fg}><label style={S.lbl}>Teléfono</label><input value={form.clienteTel} onChange={e=>fv("clienteTel",e.target.value)} placeholder="5491122334455" style={S.inp}/></div>
-        </div>
-        <div style={S.fg}><label style={S.lbl}>Email</label><input type="email" value={form.clienteEmail} onChange={e=>fv("clienteEmail",e.target.value)} placeholder="mail@mail.com" style={S.inp}/></div>
-        <div style={S.fg}>
-          <label style={{display:"flex",alignItems:"center",gap:".4rem",fontSize:".95rem",color:"var(--dark)",cursor:"pointer"}}>
-            <input type="checkbox" checked={form.usarCombo} onChange={e=>fv("usarCombo",e.target.checked)}/> Reservar un combo
-          </label>
-        </div>
-        {form.usarCombo
-          ?<div style={S.fg}><label style={S.lbl}>Combo</label>
-            <select value={form.comboId} onChange={e=>fv("comboId",e.target.value)} style={S.inp}>
-              <option value="">Seleccioná combo</option>
-              {combos.map(c=><option key={c.id} value={c.id}>📦 {c.nombre} — ${c.precio.toLocaleString()}</option>)}
-            </select></div>
-          :<div style={S.fg}><label style={S.lbl}>Equipo</label>
-            <select value={form.equipoId} onChange={e=>fv("equipoId",e.target.value)} style={S.inp}>
-              {equipos.map(e=>{const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);return<option key={e.id} value={e.id}>{e.emoji} {e.nombre} — ${p?Math.round(e.precio*(1-p.descuento/100)).toLocaleString():e.precio.toLocaleString()}{p?` (-${p.descuento}% PROMO)`:""}</option>;})}
-            </select></div>
-        }
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}><label style={S.lbl}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={S.inp}/></div>
-          <div style={S.fg}><label style={S.lbl}>💲 Precio alquiler</label><input type="number" value={form.monto} onChange={e=>fv("monto",e.target.value)} style={{...S.inp,fontWeight:700,color:"var(--bronze)"}}/></div>
-        </div>
-        <div style={S.fg}><label style={S.lbl}>Dirección</label><input value={form.direccion} onChange={e=>fv("direccion",e.target.value)} placeholder="Av. ..." style={S.inp}/></div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}><label style={S.lbl}>🟢 Hora entrega</label><input type="time" value={form.horaEntrega} onChange={e=>autoHoraRetiro(e.target.value)} style={S.inp}/></div>
-          <div style={S.fg}><label style={S.lbl}>🔴 Hora retiro</label><input type="time" value={form.horaRetiro} onChange={e=>fv("horaRetiro",e.target.value)} style={S.inp}/></div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}><label style={S.lbl}>Seña {promoActiva?"(mín 30%)":"(opcional)"}</label><input type="number" value={form.senia} onChange={e=>fv("senia",e.target.value)} placeholder="0" style={S.inp}/></div>
-          <div style={S.fg}><label style={S.lbl}>💙 Tarifa transporte</label><input type="number" value={form.tarifaTransporte} onChange={e=>fv("tarifaTransporte",e.target.value)} style={S.inp}/></div>
-        </div>
-        <div style={S.fg}><label style={S.lbl}>↻ Repetición</label>
-          <select value={form.repeticion} onChange={e=>fv("repeticion",e.target.value)} style={S.inp}>
-            <option value="none">Sin repetición</option>
-            <option value="semanal">Semanal (12 sem.)</option>
-            <option value="quincenal">Quincenal (12)</option>
-            <option value="mensual">Mensual (12 mes.)</option>
-          </select>
-        </div>
-        {conflictoEnVivo&&<div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:".5rem"}}>❌ Ese equipo ya tiene una reserva en ese horario ese día</div>}
-        {promoActiva&&<div style={{background:"#EDE9FE",border:"1.5px solid var(--purple)",borderRadius:10,padding:".5rem .8rem",fontSize:".85rem",color:"#4C1D95"}}>🎁 Promo activa — seña mínima 30%</div>}
-      </div>
-      <div style={S.mf}>
-        <button onClick={onCancel} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
-        <button onClick={onSubmit} disabled={conflictoEnVivo} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:conflictoEnVivo?"#ccc":"var(--bronze)",color:"#fff",cursor:conflictoEnVivo?"not-allowed":"pointer",fontSize:".9rem",fontWeight:600}}>{submitLabel}</button>
+        <button onClick={onSubmit} disabled={!!conflicto} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:conflicto?"#ccc":"var(--bronze)",color:"#fff",cursor:conflicto?"not-allowed":"pointer",fontSize:".9rem",fontWeight:600}}>{submitLabel||"Guardar"}</button>
       </div>
     </Overlay>
   );
@@ -424,13 +314,13 @@ function App(){
   const [combos,setCombos]=useState([]);
   const [promos,setPromos]=useState([]);
   const [equipos,setEquipos]=useState(EQUIPOS_BASE);
+  const [tarifas,setTarifas]=useState(TARIFAS_INIT);
   const [loading,setLoading]=useState(false);
   const [calMes,setCalMes]=useState({y:hoy.getFullYear(),m:hoy.getMonth()});
   const [selDay,setSelDay]=useState(fmt(hoy));
   const [modal,setModal]=useState(null);
   const [editRes,setEditRes]=useState(null);
   const [editEquipo,setEditEquipo]=useState(null);
-  const [tarifas,setTarifas]=useState(TARIFAS_BASE);
   const [editCombo,setEditCombo]=useState(null);
   const [toast,setToast]=useState(null);
   const [semOff,setSemOff]=useState(0);
@@ -444,6 +334,7 @@ function App(){
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
+
   const FDEF={clienteNombre:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",localidad:"",tarifaTransporte:"",repeticion:"none"};
   const [form,setForm]=useState(FDEF);
   const fv=useCallback((k,v)=>setForm(f=>({...f,[k]:v})),[]);
@@ -492,15 +383,13 @@ function App(){
     if(!form.clienteNombre||!form.fecha){showToast("⚠️ Completá nombre y fecha");return;}
     const monto=+form.monto;
     if(!monto){showToast("⚠️ Ingresá el precio de alquiler");return;}
-    // VALIDACION DUPLICADO — usa el estado actual de reservas directamente
-    if(!form.usarCombo){
-      const hay=tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null);
-      if(hay){showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null)){
+      showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;
     }
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`⚠️ Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
-    const base={id:genId(),clienteNombre:form.clienteNombre,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"seña":"aceptada",monto,senia:seniaVal,direccion:form.direccion,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null};
+    const base={id:genId(),clienteNombre:form.clienteNombre,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"seña":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null};
     const todas=[base,...genRecs(base,form.repeticion,12)];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("❌ "+error.message);return;}
@@ -516,12 +405,11 @@ function App(){
   };
   const guardarEdicion=async()=>{
     if(!form.fecha){showToast("⚠️ Fecha requerida");return;}
-    if(!form.usarCombo){
-      const hay=tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id);
-      if(hay){showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){
+      showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;
     }
     const monto=+form.monto||editRes.monto;
-    const updated={...editRes,clienteNombre:form.clienteNombre,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion};
+    const updated={...editRes,clienteNombre:form.clienteNombre,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion};
     const{error}=await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
     if(error){showToast("❌ "+error.message);return;}
     setReservas(rs=>rs.map(x=>x.id===editRes.id?updated:x));
@@ -541,6 +429,7 @@ function App(){
     if(error){showToast("❌ "+error.message);return;}
     setReservas(rs=>[...rs,nueva]);setDupFecha("");setModal(null);showToast("📋 Duplicada");
   };
+
   const guardarEquipo=()=>{
     if(!equipoForm.nombre||!equipoForm.precio){showToast("⚠️ Nombre y precio requeridos");return;}
     if(editEquipo){setEquipos(es=>es.map(e=>e.id===editEquipo.id?{...e,...equipoForm,precio:+equipoForm.precio}:e));showToast("✅ Actualizado");}
@@ -570,7 +459,7 @@ function App(){
     if(reservas.some(r=>r.comboId===id&&r.estado!=="cancelado")){showToast("⚠️ Tiene reservas activas");return;}
     const{error}=await supa.from("combos").delete().eq("id",id);
     if(error){showToast("❌ "+error.message);return;}
-    setCombos(cs=>cs.filter(c=>c.id!==id));showToast("🗑️ Combo eliminado");
+    setCombos(cs=>cs.filter(c=>c.id!==id));showToast("🗑️ Eliminado");
   };
   const crearPromo=async()=>{
     if(!promoForm.titulo){showToast("⚠️ Título requerido");return;}
@@ -614,7 +503,7 @@ function App(){
 
   const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
-    const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||TARIFA_BASE,estadoLabel(r.estado)])]);
+    const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Localidad","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.localidad||"",r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||TARIFA_BASE,estadoLabel(r.estado)])]);
     window.XLSX.utils.book_append_sheet(wb,ws,"Reservas");
     window.XLSX.writeFile(wb,`GCRent_${fmt(hoy).replace(/-/g,"")}.xlsx`);
     showToast("📥 Excel descargado");
@@ -749,7 +638,7 @@ function App(){
   if(loading)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--bronze)"}}>Cargando datos…</div>;
 
   const navItems=rol==="admin"
-    ?[{id:"agenda",l:"📅 Agenda"},{id:"calendario",l:"🗓 Calendario"},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"tarifas",l:"🚚 Tarifas"},{id:"buscar",l:"🔍 Buscar"}]
+    ?[{id:"agenda",l:"📅 Agenda"},{id:"calendario",l:"🗓 Cal."},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"tarifas",l:"🚚 Tarifas"},{id:"buscar",l:"🔍 Buscar"}]
     :rol==="transportista"
     ?[{id:"logistica",l:"🚚 Entregas"},{id:"semana",l:"💰 Mi semana"}]
     :[{id:"calendario_cliente",l:"📅 Mi calendario"},{id:"buscar_cliente",l:"🔍 Mis reservas"}];
@@ -764,7 +653,7 @@ function App(){
         <div style={{display:"grid",gridTemplateColumns:`repeat(${navItems.length},1fr)`,width:"100%",padding:".5rem .6rem",gap:".4rem"}}>
           {navItems.map(n=>{
             const activo=seccion===n.id;
-            return<button key={n.id} onClick={()=>setSeccion(n.id)} style={{padding:".65rem .2rem",borderRadius:10,border:"none",cursor:"pointer",background:activo?"var(--bronze)":"rgba(255,255,255,.08)",color:activo?"#fff":"#C0A88A",fontFamily:"'DM Sans',sans-serif",fontSize:"clamp(.7rem,2vw,1rem)",fontWeight:activo?700:500,textAlign:"center",boxShadow:activo?"0 2px 10px rgba(176,125,78,.4)":"none",transition:"background .18s"}}>{n.l}</button>;
+            return<button key={n.id} onClick={()=>setSeccion(n.id)} style={{padding:".65rem .2rem",borderRadius:10,border:"none",cursor:"pointer",background:activo?"var(--bronze)":"rgba(255,255,255,.08)",color:activo?"#fff":"#C0A88A",fontFamily:"'DM Sans',sans-serif",fontSize:"clamp(.6rem,1.8vw,.95rem)",fontWeight:activo?700:500,textAlign:"center",boxShadow:activo?"0 2px 10px rgba(176,125,78,.4)":"none",transition:"background .18s"}}>{n.l}</button>;
           })}
         </div>
       </nav>
@@ -789,7 +678,7 @@ function App(){
               :resDia.map(r=>(
                 <div key={r.id} style={{padding:".6rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
                   {RC(r).map((c,i)=><div key={i} style={{width:11,height:11,borderRadius:"50%",background:c,flexShrink:0}}/>)}
-                  <div style={{flex:1}}><div style={{fontWeight:600,fontSize:".9rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div><div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)}</div></div>
+                  <div style={{flex:1}}><div style={{fontWeight:600,fontSize:".9rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div><div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)}{r.localidad?` · ${r.localidad}`:""}</div></div>
                   {badge(r.estado)}
                 </div>
               ))}
@@ -905,30 +794,22 @@ function App(){
         {seccion==="tarifas"&&rol==="admin"&&(<>
           <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>🚚 Tarifas de Transporte</h2>
           <div style={{background:"#DBEAFE",border:"1.5px solid var(--blue)",borderRadius:10,padding:".7rem 1rem",fontSize:".85rem",color:"#1E3A5F",marginBottom:"1rem"}}>
-            💡 Las tarifas se calculan automáticamente al seleccionar equipo y localidad en cada reserva. Editá los valores base acá.
+            💡 Al seleccionar equipo y localidad en una reserva, la tarifa se completa automáticamente. Podés editarla manualmente en cada reserva.
           </div>
           {[{zona:"zona1",label:"Zona 1",desc:"Resistencia · Fontana · Barranqueras",color:"var(--green)"},{zona:"zona2",label:"Zona 2",desc:"Corrientes · Puerto Tirol · Margarita Belén · Colonia Benítez",color:"var(--blue)"}].map(z=>(
             <div key={z.zona} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden",marginBottom:"1rem"}}>
               <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1.2rem",display:"flex",alignItems:"center",gap:".7rem"}}>
-                <span style={{display:"inline-block",width:12,height:12,borderRadius:"50%",background:z.color}}></span>
+                <span style={{display:"inline-block",width:12,height:12,borderRadius:"50%",background:z.color,flexShrink:0}}/>
                 <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>{z.label}</span>
                 <span style={{fontSize:".75rem",opacity:.7}}>{z.desc}</span>
               </div>
-              <div style={{padding:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:".8rem"}}>
-                {[
-                  {key:"mio_up",label:"Mio Up / Mio Up Quad"},
-                  {key:"criofraxis",label:"Criofraxis / Criolipólisis"},
-                  {key:"laser",label:"Láser (todos los Soprano + ADSS)"},
-                  {key:"teslagen_vela_ondas",label:"Teslagen / Vela / Onda de Choque"},
-                  {key:"hifu_hollywood",label:"HIFU / Hollywood Peel"},
-                  {key:"default",label:"Resto de equipos"},
-                ].map(t=>(
+              <div style={{padding:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:".8rem"}}>
+                {[{key:"mio_up",label:"Mio Up / Mio Up Quad"},{key:"criofraxis",label:"Criofraxis / Criolipólisis"},{key:"laser",label:"Láser (Soprano + ADSS)"},{key:"teslagen_vela_ondas",label:"Teslagen / Vela / Onda de Choque"},{key:"hifu_hollywood",label:"HIFU / Hollywood Peel"},{key:"default",label:"Resto de equipos"}].map(t=>(
                   <div key={t.key} style={{background:"var(--light)",borderRadius:10,padding:".7rem .9rem"}}>
                     <div style={{fontSize:".72rem",fontWeight:600,color:"var(--mid)",marginBottom:".3rem",textTransform:"uppercase",letterSpacing:".04em"}}>{t.label}</div>
                     <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
                       <span style={{fontSize:".9rem",color:"var(--mid)"}}>$</span>
-                      <input type="number" value={tarifas[z.zona][t.key]} onChange={e=>setTarifas(tf=>({...tf,[z.zona]:{...tf[z.zona],[t.key]:+e.target.value}}))}
-                        style={{...S.inp,fontWeight:700,color:z.color,fontSize:"1rem",padding:".35rem .6rem"}}/>
+                      <input type="number" value={tarifas[z.zona][t.key]} onChange={e=>setTarifas(tf=>({...tf,[z.zona]:{...tf[z.zona],[t.key]:+e.target.value}}))} style={{...S.inp,fontWeight:700,color:z.color,fontSize:"1rem",padding:".35rem .6rem"}}/>
                     </div>
                   </div>
                 ))}
@@ -937,10 +818,12 @@ function App(){
           ))}
           <div style={{background:"var(--light)",border:"1px solid var(--sand)",borderRadius:12,padding:"1rem 1.2rem",fontSize:".85rem",color:"var(--mid)"}}>
             <strong style={{color:"var(--dark)"}}>Localidades por zona:</strong><br/>
-            <span style={{color:"var(--green)"}}>Zona 1:</span> Resistencia, Fontana, Barranqueras (todas en Chaco)<br/>
-            <span style={{color:"var(--blue)"}}>Zona 2:</span> Corrientes, Puerto Tirol, Margarita Belén, Colonia Benítez (Chaco)
+            <span style={{color:"var(--green)"}}>● Zona 1:</span> Resistencia, Fontana, Barranqueras (Chaco)<br/>
+            <span style={{color:"var(--blue)"}}>● Zona 2:</span> Corrientes, Puerto Tirol, Margarita Belén, Colonia Benítez (Chaco)
           </div>
         </>)}
+
+        {seccion==="buscar"&&rol==="admin"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem",flexWrap:"wrap",gap:".5rem"}}>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>🔍 Buscar</h2>
             {btn("📥 Excel",exportarExcel,"var(--green)")}
@@ -1003,7 +886,7 @@ function App(){
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>👤 {r.clienteNombre}</span>
                   <span>📅 {fmtVis(r.fecha)} · 🟢 {r.horaEntrega||"—"} · 🔴 {r.horaRetiro||"—"}</span>
-                  <span>📍 {r.direccion||"—"}</span>
+                  <span>📍 {r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>
                 </div>
                 <div style={{display:"flex",gap:".4rem",marginTop:".7rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("✅ Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
@@ -1032,7 +915,7 @@ function App(){
             :<div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:".85rem"}}>
                 <thead><tr style={{background:"var(--light)"}}>
-                  {["Cliente","Equipo","Fecha","Entrega","Retiro","Mi viaje","Estado"].map(h=><th key={h} style={{padding:".5rem .8rem",textAlign:"left",fontSize:".7rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>{h}</th>)}
+                  {["Cliente","Equipo","Fecha","Entrega","Retiro","Localidad","Mi viaje","Estado"].map(h=><th key={h} style={{padding:".5rem .8rem",textAlign:"left",fontSize:".7rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {resSem.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
@@ -1042,6 +925,7 @@ function App(){
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{fmtVis(r.fecha)}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaEntrega||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaRetiro||"—"}</td>
+                      <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".78rem",color:"var(--mid)"}}>{r.localidad||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontWeight:700,color:"var(--blue)"}}>${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>
                         <span style={{display:"inline-block",padding:".15rem .55rem",borderRadius:99,fontSize:".7rem",fontWeight:700,background:r.estado==="completado"?"#D1FAE5":"#FEF3CD",color:r.estado==="completado"?"#064E3B":"#7A5800"}}>{r.estado==="completado"?"✅ Completado":"⏳ Pendiente"}</span>
@@ -1049,7 +933,7 @@ function App(){
                     </tr>
                   ))}
                   <tr style={{background:"var(--light)",fontWeight:700}}>
-                    <td colSpan={5} style={{padding:".5rem .8rem"}}>TOTAL SEMANA</td>
+                    <td colSpan={6} style={{padding:".5rem .8rem"}}>TOTAL SEMANA</td>
                     <td style={{padding:".5rem .8rem",color:"var(--blue)",fontSize:".95rem"}}>${totalSem.toLocaleString()}</td>
                     <td/>
                   </tr>
