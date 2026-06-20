@@ -930,7 +930,7 @@ function App(){
             :<div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:".85rem"}}>
                 <thead><tr style={{background:"var(--light)"}}>
-                  {["Cliente","Equipo","Fecha","Entrega","Retiro","Localidad","Mi viaje","Estado"].map(h=><th key={h} style={{padding:".5rem .8rem",textAlign:"left",fontSize:".7rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>{h}</th>)}
+                  {["Cliente","Equipo","Fecha","Entrega","Retiro","Teléfono","Dirección","Localidad","Mi viaje","Estado"].map(h=><th key={h} style={{padding:".5rem .8rem",textAlign:"left",fontSize:".7rem",textTransform:"uppercase",color:"var(--mid)",borderBottom:"1px solid var(--sand)"}}>{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {resSem.sort((a,b)=>a.fecha.localeCompare(b.fecha)).map(r=>(
@@ -940,6 +940,8 @@ function App(){
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{fmtVis(r.fecha)}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaEntrega||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{r.horaRetiro||"—"}</td>
+                      <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".8rem"}}>{r.clienteTel||"—"}</td>
+                      <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".78rem",color:"var(--mid)"}}>{r.direccion||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".78rem",color:"var(--mid)"}}>{r.localidad||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontWeight:700,color:"var(--blue)"}}>${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>
@@ -948,7 +950,7 @@ function App(){
                     </tr>
                   ))}
                   <tr style={{background:"var(--light)",fontWeight:700}}>
-                    <td colSpan={6} style={{padding:".5rem .8rem"}}>TOTAL SEMANA</td>
+                    <td colSpan={8} style={{padding:".5rem .8rem"}}>TOTAL SEMANA</td>
                     <td style={{padding:".5rem .8rem",color:"var(--blue)",fontSize:".95rem"}}>${totalSem.toLocaleString()}</td>
                     <td/>
                   </tr>
