@@ -421,8 +421,13 @@ function App(){
     if(error){showToast("❌ Error");return;}
     setReservas(rs=>rs.map(r=>r.id===id?{...r,estado,...extra}:r));
   };
+  const borrarReserva=async id=>{
+    const{error}=await supa.from("reservas").delete().eq("id",id);
+    if(error){showToast("❌ "+error.message);return;}
+    setReservas(rs=>rs.filter(r=>r.id!==id));
+    showToast("🗑️ Reserva eliminada");
+  };
   const cancelarReserva=async(id,tipo)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:tipo});setModal(null);showToast("❌ Cancelada");};
-  const duplicarReserva=async base=>{
     if(!dupFecha){showToast("⚠️ Seleccioná fecha");return;}
     const nueva={...base,id:genId(),fecha:dupFecha,estado:"aceptada",senia:0,esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
@@ -549,6 +554,7 @@ function App(){
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>✏️</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋 Duplicar</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>✕</button>}
+                  {r.estado==="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"#7F1D1D",color:"#fff",cursor:"pointer"}} onClick={()=>borrarReserva(r.id)}>🗑️ Borrar</button>}
                 </div>
               </td>}
             </tr>
@@ -662,11 +668,14 @@ function App(){
         {seccion==="agenda"&&rol==="admin"&&(<>
           {alertas.map(a=><div key={a.id} style={{background:"#FFFBEB",border:"1.5px solid var(--gold)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#713F12",marginBottom:".6rem"}}>🔔 <strong>Mañana:</strong> {a.clienteNombre} — {IL(a)}</div>)}
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:".8rem"}}>{btn("+ Nueva reserva",()=>{setForm(FDEF);setModal("nueva");},"var(--gold)")}</div>
-          {reservas.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>No hay reservas aún.</div>:<TablaReservas rs={[...reservas].sort((a,b)=>a.fecha.localeCompare(b.fecha))} conHoras={true}/>}
+          {reservas.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>No hay reservas aún.</div>:<TablaReservas rs={[...reservas].sort((a,b)=>{const hoy2=fmt(hoy);const aFut=a.fecha>=hoy2,bFut=b.fecha>=hoy2;if(aFut&&bFut)return a.fecha.localeCompare(b.fecha);if(!aFut&&!bFut)return b.fecha.localeCompare(a.fecha);return aFut?-1:1;})} conHoras={true}/> }
         </>)}
 
         {seccion==="calendario"&&rol==="admin"&&(<>
-          <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>🗓 Calendario</h2>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>🗓 Calendario</h2>
+            {btn("+ Nueva reserva",()=>{setForm({...FDEF,fecha:selDay});setModal("nueva");},"var(--gold)")}
+          </div>
           <CalendarView/>
           {selDay&&(
             <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".9rem",overflow:"hidden"}}>
@@ -681,12 +690,17 @@ function App(){
                   return<span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.05rem",color:"var(--bronze)"}}>{label}: ${total.toLocaleString()}</span>;
                 })()}
               </div>
-              {resDia.length===0?<div style={{padding:"1rem",textAlign:"center",color:"var(--mid)"}}>Sin turnos.</div>
+              {resDia.length===0?<div style={{padding:"1rem",textAlign:"center",color:"var(--mid)"}}>Sin turnos. Podés crear uno con "+ Nueva reserva".</div>
               :resDia.map(r=>(
                 <div key={r.id} style={{padding:".6rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
                   {RC(r).map((c,i)=><div key={i} style={{width:11,height:11,borderRadius:"50%",background:c,flexShrink:0}}/>)}
                   <div style={{flex:1}}><div style={{fontWeight:600,fontSize:".9rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div><div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)}{r.localidad?` · ${r.localidad}`:""}</div></div>
                   {badge(r.estado)}
+                  <div style={{display:"flex",gap:".3rem"}} onClick={e=>e.stopPropagation()}>
+                    <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>✏️</button>
+                    <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋 Duplicar</button>
+                    {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>✕</button>}
+                  </div>
                 </div>
               ))}
             </div>
