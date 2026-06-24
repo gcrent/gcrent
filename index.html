@@ -538,9 +538,8 @@ function App(){
   const notificarWA=(r,tipo)=>{
     const nombreEq=iLabel(r,combos,equipos);
     const msg=tipo==="aceptar"
-?encodeURIComponent("*\u00a1Tu reserva fue confirmada!*\n\n\uD83D\uDCC5 "+fmtFull(r.fecha)+"\n\uD83D\uDEE0 "+nombreEq+"\n\uD83D\uDCCD "+r.localidad+"\n\uD83D\uDCB0 $"+r.monto.toLocaleString()+"\n\nNos comunicaremos para coordinar el horario de entrega.\n\n\uD83D\uDCF2 Seguinos en Instagram: @GC_EQUIPAMIENTO")
-      :encodeURIComponent("*Tu solicitud no pudo ser confirmada.*\n\n\uD83D\uDCC5 "+fmtFull(r.fecha)+"\n\uD83D\uDEE0 "+nombreEq+"\n\nConsultanos por otros turnos disponibles.\n\n\uD83D\uDCF2 Seguinos en Instagram: @GC_EQUIPAMIENTO");
-    const telLimpio=r.clienteTel?r.clienteTel.replace(/\D/g,""):"";     const tel=telLimpio&&!telLimpio.startsWith("54")?"54"+telLimpio:telLimpio;
+?encodeURIComponent("*¡Tu reserva fue confirmada!*\n\nFecha: "+fmtFull(r.fecha)+"\nEquipo: "+nombreEq+"\nLocalidad: "+r.localidad+"\nPrecio: $"+r.monto.toLocaleString()+"\n\nNos comunicaremos para coordinar el horario de entrega.\n\nSeguinos en Instagram: @GC_EQUIPAMIENTO")
+      :encodeURIComponent("*Tu solicitud no pudo ser confirmada.*\n\nFecha: "+fmtFull(r.fecha)+"\nEquipo: "+nombreEq+"\n\nConsultanos por otros turnos disponibles.\n\nSeguinos en Instagram: @GC_EQUIPAMIENTO");    const telLimpio=r.clienteTel?r.clienteTel.replace(/\D/g,""):"";     const tel=telLimpio&&!telLimpio.startsWith("54")?"54"+telLimpio:telLimpio;
     if(tel)window.open("https://wa.me/"+tel+"?text="+msg,"_blank");
     else showToast("⚠️ El cliente no tiene teléfono cargado");
   };
