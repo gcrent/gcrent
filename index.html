@@ -219,7 +219,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
   const [selCombo,setSelCombo]=useState(null);
   const [usarCombo,setUsarCombo]=useState(false);
   const [enviando,setEnviando]=useState(false);
-  const [pf,setPf]=useState({nombre:"",tel:"",direccion:"",localidad:""});
+  const [pf,setPf]=useState({nombre:"",tel:"",direccion:"",localidad:"",senia:""});   const [filtroEquipo,setFiltroEquipo]=useState(null);   const [filtroEsCombo,setFiltroEsCombo]=useState(false);
   const upd=(k,v)=>setPf(f=>({...f,[k]:v}));
   const fmtHoy=fmt(hoy);
 
@@ -253,26 +253,40 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
     return calcTarifa(eId,pf.localidad,tarifas)||TARIFA_BASE;
   },[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
 
-  const dotsEnFecha=date=>{
+const dotsEnFecha=date=>{
+    if(filtroEquipo){
+      if(filtroEsCombo){
+        const c=combos.find(x=>x.id===filtroEquipo);
+        if(!c)return"libre";
+        return c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,date))?"libre":"ocupado";
+      }
+      return equipoLibreEnFecha(reservas,filtroEquipo,date)?"libre":"ocupado";
+    }
     const ocp=reservas.filter(r=>r.fecha===date&&r.estado!=="cancelado").length;
     if(ocp===0)return"libre";
     if(ocp<equipos.length)return"parcial";
     return"ocupado";
   };
 
-  const selDia=d=>{
+const selDia=d=>{
     if(d.other||d.date<fmtHoy)return;
-    setSelDay(d.date);setSelEquipo(null);setSelCombo(null);setUsarCombo(false);setPaso(2);
+    if(dotsEnFecha(d.date)==="ocupado")return;
+    setSelDay(d.date);
+    if(filtroEquipo){
+      if(filtroEsCombo){const c=combos.find(x=>x.id===filtroEquipo);if(c){setSelCombo(c);setUsarCombo(true);setSelEquipo(null);setPaso(3);return;}}
+      else{const e=equipos.find(x=>x.id===filtroEquipo);if(e){setSelEquipo(e);setUsarCombo(false);setSelCombo(null);setPaso(3);return;}}
+    }
+    setSelEquipo(null);setSelCombo(null);setUsarCombo(false);setPaso(2);
   };
 
   const enviar=async()=>{
     if(!pf.nombre||!pf.tel||!pf.localidad){alert("Completá nombre, teléfono y localidad");return;}
     setEnviando(true);
-    const nueva={id:genId(),clienteNombre:pf.nombre,clienteEmail:"",clienteTel:pf.tel,equipoId:usarCombo?null:(selEquipo?.id||null),comboId:usarCombo?(selCombo?.id||null):null,fecha:selDay,horaEntrega:"",horaRetiro:"",estado:"pendiente",monto:precio,senia:0,direccion:pf.direccion,localidad:pf.localidad,tarifaTransporte:tarifa,repeticion:"none",esRecurrencia:false,serieId:null};
+    const nueva={id:genId(),clienteNombre:pf.nombre,clienteEmail:"",clienteTel:pf.tel,equipoId:usarCombo?null:(selEquipo?.id||null),comboId:usarCombo?(selCombo?.id||null):null,fecha:selDay,horaEntrega:"",horaRetiro:"",estado:"pendiente",monto:precio,senia:+pf.senia||0,direccion:pf.direccion,localidad:pf.localidad,tarifaTransporte:tarifa,repeticion:"none",esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){alert("Error: "+error.message);setEnviando(false);return;}
     const nombreEq=usarCombo?("📦 "+selCombo.nombre):(selEquipo.emoji+" "+selEquipo.nombre);
-    const msg=encodeURIComponent("📋 *Nueva solicitud de reserva*\n\n👤 "+pf.nombre+"\n📞 "+pf.tel+"\n📅 "+fmtFull(selDay)+"\n🛠 "+nombreEq+"\n📍 "+pf.localidad+(pf.direccion?" — "+pf.direccion:"")+"\n💰 $"+precio.toLocaleString()+"\n\nPendiente de confirmación.");
+    const msg=encodeURIComponent("📋 *Nueva solicitud de reserva*\n\n👤 "+pf.nombre+"\n📞 "+pf.tel+"\n📅 "+fmtFull(selDay)+"\n🛠 "+nombreEq+"\n📍 "+pf.localidad+(pf.direccion?" — "+pf.direccion:"")+"\n💰 $"+precio.toLocaleString()+(+pf.senia>=5000?"\n💵 Seña: $"+(+pf.senia).toLocaleString():"")+"\n\nPendiente de confirmación.");
     window.open("https://wa.me/"+WA_NUM+"?text="+msg,"_blank");
     setPaso(4);setEnviando(false);
   };
@@ -304,8 +318,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
       <div style={{padding:"1rem",maxWidth:540,margin:"0 auto"}}>
 
         {paso===1&&(<>
-          <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí una fecha</div>
-          <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Tocá un día para ver qué equipos están libres</div>
+          <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí un equipo y una fecha</div>           <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Filtrá por equipo para ver sus fechas disponibles</div>           <div style={{marginBottom:"1rem"}}>             <div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>Filtrar por equipo (opcional)</div>             <div style={{display:"flex",flexWrap:"wrap",gap:".4rem",marginBottom:".4rem"}}>               <button onClick={()=>{setFiltroEquipo(null);setFiltroEsCombo(false);}} style={{padding:".35rem .7rem",borderRadius:8,border:"none",background:!filtroEquipo?"var(--bronze)":"rgba(255,255,255,.12)",color:"#fff",fontSize:".78rem",fontWeight:600,cursor:"pointer"}}>Todos</button>               {combos.map(c=><button key={c.id} onClick={()=>{setFiltroEquipo(c.id);setFiltroEsCombo(true);}} style={{padding:".35rem .7rem",borderRadius:8,border:"none",background:filtroEsCombo&&filtroEquipo===c.id?"var(--bronze)":"rgba(255,255,255,.12)",color:"#fff",fontSize:".78rem",fontWeight:600,cursor:"pointer"}}>📦 {c.nombre}</button>)}               {equipos.map(e=><button key={e.id} onClick={()=>{setFiltroEquipo(e.id);setFiltroEsCombo(false);}} style={{padding:".35rem .7rem",borderRadius:8,border:"none",background:!filtroEsCombo&&filtroEquipo===e.id?"var(--bronze)":"rgba(255,255,255,.12)",color:"#fff",fontSize:".78rem",fontWeight:600,cursor:"pointer"}}>{e.emoji} {e.nombre}</button>)}             </div>           </div>
+          
           <div style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--sand)"}}>
             <div style={{background:"var(--dark)",color:"var(--cream)",padding:".7rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #333"}}>
               <button onClick={()=>setCalMes(c=>({y:c.m===0?c.y-1:c.y,m:c.m===0?11:c.m-1}))} style={{background:"none",border:"1px solid #555",color:"#ccc",borderRadius:6,padding:".2rem .5rem",cursor:"pointer"}}>‹</button>
@@ -401,7 +415,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
                 <optgroup label="— Zona 2 —">{["Corrientes","Puerto Tirol, Chaco","Margarita Belén, Chaco","Colonia Benítez, Chaco"].map(l=><option key={l} value={l}>{l}</option>)}</optgroup>
               </select>
             </div>
-            {pf.localidad&&<div style={{background:"var(--light)",borderRadius:8,padding:".5rem .8rem",fontSize:".82rem",color:"var(--mid)",marginBottom:".8rem"}}>🚚 Tarifa de transporte: <strong>${tarifa.toLocaleString()}</strong></div>}
+            <div style={S.fg}>               <label style={S.lbl}>Seña (mínimo $5.000, opcional)</label>               <input type="number" min="5000" value={pf.senia} onChange={e=>upd("senia",e.target.value)} placeholder="0" style={S.inp}/>               {+pf.senia>0&&+pf.senia<5000&&<div style={{color:"var(--red)",fontSize:".75rem",marginTop:".2rem"}}>La seña mínima es $5.000</div>}             </div>             {pf.localidad&&<div style={{background:"var(--light)",borderRadius:8,padding:".5rem .8rem",fontSize:".82rem",color:"var(--mid)",marginBottom:".8rem"}}>🚚 Tarifa de transporte: <strong>${tarifa.toLocaleString()}</strong></div>}
           </div>
           <button onClick={enviar} disabled={enviando} style={{width:"100%",padding:".9rem",borderRadius:12,border:"none",background:enviando?"#aaa":"var(--green)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:700,cursor:enviando?"wait":"pointer",marginTop:"1rem"}}>
             {enviando?"Enviando...":"📲 Enviar solicitud por WhatsApp"}
@@ -521,8 +535,17 @@ function App(){
   };
 
   const cambiarEstado=async(id,estado,extra={})=>{const{error}=await supa.from("reservas").update({estado,...extra}).eq("id",id);if(error){showToast("❌ Error");return;}setReservas(rs=>rs.map(r=>r.id===id?{...r,estado,...extra}:r));};
-  const aceptarPendiente=async id=>{await cambiarEstado(id,"aceptada");showToast("✅ Reserva aceptada");};
-  const rechazarPendiente=async id=>{await cambiarEstado(id,"cancelado",{cancel_tipo:"rechazada"});showToast("❌ Solicitud rechazada");};
+  const notificarWA=(r,tipo)=>{
+    const nombreEq=iLabel(r,combos,equipos);
+    const msg=tipo==="aceptar"
+      ?encodeURIComponent("✅ *¡Tu reserva fue confirmada!*\n\n📅 "+fmtFull(r.fecha)+"\n🛠 "+nombreEq+"\n📍 "+r.localidad+"\n💰 $"+r.monto.toLocaleString()+"\n\nNos comunicaremos para coordinar el horario de entrega.\n\n📲 Seguinos en Instagram: @GC_EQUIPAMIENTO")
+      :encodeURIComponent("❌ *Tu solicitud no pudo ser confirmada.*\n\n📅 "+fmtFull(r.fecha)+"\n🛠 "+nombreEq+"\n\nConsultanos por otros turnos disponibles.\n\n📲 Seguinos en Instagram: @GC_EQUIPAMIENTO");
+    const tel=r.clienteTel?r.clienteTel.replace(/\D/g,""):"";
+    if(tel)window.open("https://wa.me/"+tel+"?text="+msg,"_blank");
+    else showToast("⚠️ El cliente no tiene teléfono cargado");
+  };
+  const aceptarPendiente=async(id,r)=>{await cambiarEstado(id,"aceptada");showToast("✅ Reserva aceptada");};
+  const rechazarPendiente=async(id,r)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:"rechazada"});showToast("❌ Solicitud rechazada");};
   const cancelarReserva=async(id,tipo)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:tipo});setModal(null);showToast("❌ Cancelada");};
   const borrarReserva=async id=>{const{error}=await supa.from("reservas").delete().eq("id",id);if(error){showToast("❌ "+error.message);return;}setReservas(rs=>rs.filter(r=>r.id!==id));showToast("🗑️ Eliminada");};
   const duplicarReserva=async base=>{
@@ -637,7 +660,7 @@ function App(){
               <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>{badge(r.estado)}</td>
               {acciones&&<td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>
                 <div style={{display:"flex",gap:".2rem",flexWrap:"wrap"}}>
-                  {r.estado==="pendiente"&&<><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>aceptarPendiente(r.id)}>✅ Aceptar</button><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>rechazarPendiente(r.id)}>❌ Rechazar</button></>}
+                  {r.estado==="pendiente"&&<><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>aceptarPendiente(r.id,r)}>✅</button><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>rechazarPendiente(r.id,r)}>❌</button><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--teal)",color:"#fff",cursor:"pointer"}} onClick={()=>notificarWA(r,"aceptar")}>📲✅</button><button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--mid)",color:"#fff",cursor:"pointer"}} onClick={()=>notificarWA(r,"rechazar")}>📲❌</button></>}
                   {["sena","activo"].includes(r.estado)&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"completado")}>✅</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>✏️</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>📋 Duplicar</button>}
@@ -772,8 +795,10 @@ function App(){
                     <div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)} · {fmtVis(r.fecha)} · ${r.monto.toLocaleString()}</div>
                   </div>
                   <div style={{display:"flex",gap:".3rem"}}>
-                    {btn("✅ Aceptar",()=>aceptarPendiente(r.id),"var(--green)")}
-                    {btn("❌ Rechazar",()=>rechazarPendiente(r.id),"var(--red)")}
+                    {btn("✅ Aceptar",()=>aceptarPendiente(r.id,r),"var(--green)")}
+                    {btn("❌ Rechazar",()=>rechazarPendiente(r.id,r),"var(--red)")}
+                    {btn("📲 Notificar OK",()=>notificarWA(r,"aceptar"),"var(--teal)")}
+                    {btn("📲 Notificar rechazo",()=>notificarWA(r,"rechazar"),"var(--mid)")}
                   </div>
                 </div>
               ))}
