@@ -914,7 +914,46 @@ function App(){
               </div>
             ))}
           </div>
-          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
+          {(()=>{
+            const hoyDate=new Date();
+            const mesActual=hoyDate.getMonth(),anioActual=hoyDate.getFullYear();
+            const diaActual=hoyDate.getDate();
+            const diasEnMesActual=new Date(anioActual,mesActual+1,0).getDate();
+            const mesPrev=mesActual===0?11:mesActual-1;
+            const anioPrev=mesActual===0?anioActual-1:anioActual;
+            const mesNext=mesActual===11?0:mesActual+1;
+            const anioNext=mesActual===11?anioActual+1:anioActual;
+            const keyActual=anioActual+"-"+String(mesActual+1).padStart(2,"0");
+            const keyPrev=anioPrev+"-"+String(mesPrev+1).padStart(2,"0");
+            const keyNext=anioNext+"-"+String(mesNext+1).padStart(2,"0");
+            const resActual=reservas.filter(r=>mesKey(r.fecha)===keyActual&&r.estado!=="cancelado");
+            const resPrev=reservas.filter(r=>mesKey(r.fecha)===keyPrev&&r.estado!=="cancelado");
+            const resNext=reservas.filter(r=>mesKey(r.fecha)===keyNext&&r.estado!=="cancelado");
+            const montoActual=resActual.reduce((a,r)=>a+r.monto,0);
+            const montoPrev=resPrev.reduce((a,r)=>a+r.monto,0);
+            const montoNext=resNext.reduce((a,r)=>a+r.monto,0);
+            const forecast=Math.round(montoActual/diaActual*diasEnMesActual);
+            const pct=montoPrev>0?Math.round((forecast/montoPrev-1)*100):null;
+            const mejor=pct!==null&&pct>=0;
+            return(
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"1rem",marginBottom:"1.2rem"}}>
+                <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",borderLeft:"4px solid var(--blue)"}}>
+                  <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>📈 Forecast mes actual</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--dark)"}}>${forecast.toLocaleString()}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".2rem"}}>
+                    {pct!==null&&<span style={{fontSize:".8rem",fontWeight:700,color:mejor?"var(--green)":"var(--red)"}}>{mejor?"↑":"↓"} {Math.abs(pct)}% vs mes anterior</span>}
+                    {pct===null&&<span style={{fontSize:".75rem",color:"var(--mid)"}}>Sin datos del mes anterior</span>}
+                  </div>
+                  <div style={{fontSize:".72rem",color:"var(--mid)",marginTop:".15rem"}}>Basado en {diaActual} días transcurridos</div>
+                </div>
+                <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",borderLeft:"4px solid var(--purple)"}}>
+                  <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>📅 Comprometido mes siguiente</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--dark)"}}>${montoNext.toLocaleString()}</div>
+                  <div style={{fontSize:".75rem",color:"var(--mid)",marginTop:".2rem"}}>{resNext.length} reserva{resNext.length!==1?"s":""} ya cargada{resNext.length!==1?"s":""}</div>
+                </div>
+              </div>
+            );
+          })()}<div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
             <div style={{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>👥 Ranking de clientes</div>
             <div style={{padding:"1rem"}}>
               {rankingClientes.length===0?<div style={{textAlign:"center",color:"var(--mid)"}}>Sin datos.</div>
