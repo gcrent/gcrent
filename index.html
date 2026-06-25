@@ -932,7 +932,7 @@ function App(){
             const montoActual=resActual.reduce((a,r)=>a+r.monto,0);
             const montoPrev=resPrev.reduce((a,r)=>a+r.monto,0);
             const montoNext=resNext.reduce((a,r)=>a+r.monto,0);
-            const forecast=Math.round(montoActual/diaActual*diasEnMesActual);
+            const forecast=montoActual;
             const pct=montoPrev>0?Math.round((forecast/montoPrev-1)*100):null;
             const mejor=pct!==null&&pct>=0;
             return(
@@ -944,7 +944,7 @@ function App(){
                     {pct!==null&&<span style={{fontSize:".8rem",fontWeight:700,color:mejor?"var(--green)":"var(--red)"}}>{mejor?"↑":"↓"} {Math.abs(pct)}% vs mes anterior</span>}
                     {pct===null&&<span style={{fontSize:".75rem",color:"var(--mid)"}}>Sin datos del mes anterior</span>}
                   </div>
-                  <div style={{fontSize:".72rem",color:"var(--mid)",marginTop:".15rem"}}>Basado en {diaActual} días transcurridos</div>
+                  <div style={{fontSize:".72rem",color:"var(--mid)",marginTop:".15rem"}}>{resActual.length} reserva{resActual.length!==1?"s":""} agendada{resActual.length!==1?"s":""}</div>
                 </div>
                 <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",borderLeft:"4px solid var(--purple)"}}>
                   <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>📅 Comprometido mes siguiente</div>
