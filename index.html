@@ -229,49 +229,59 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   const [guardando,setGuardando]=useState(false);
   const S2={inp:{width:"100%",padding:".3rem .5rem",border:"1.5px solid var(--sand)",borderRadius:6,fontFamily:"'DM Sans',sans-serif",fontSize:".78rem",background:"var(--light)"}};
 
+  const periodoVacio=()=>({id:Date.now()+Math.random(),desde:"",hasta:"",socio:""});
+
   useEffect(()=>{
     setDatosLiq(null);
     (async()=>{
       const{data}=await supa.from("liquidacion").select("*").eq("mes",mesLiq).single();
       if(data){
-        setDatosLiq(data);
+        // migrar formato viejo si tiene semanas
+        if(data.semanas&&!data.periodos){
+          setDatosLiq({...data,periodos:[periodoVacio()],gastos_fer:data.gastos_fer||CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:data.gastos_jc||CONCEPTOS.map(c=>({concepto:c,monto:""}))});
+        } else {
+          setDatosLiq({...data,periodos:data.periodos||[periodoVacio()]});
+        }
       } else {
-        setDatosLiq({mes:mesLiq,semanas:{s1:"",s2:"",s3:"",s4:""},gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""}))});
+        setDatosLiq({mes:mesLiq,periodos:[periodoVacio()],gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""}))});
       }
     })();
   },[mesLiq]);
 
   if(!datosLiq)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
 
-  const updSemana=(k,v)=>setDatosLiq(d=>({...d,semanas:{...d.semanas,[k]:v}}));
+  const updPeriodo=(id,campo,val)=>setDatosLiq(d=>({...d,periodos:d.periodos.map(p=>p.id===id?{...p,[campo]:val}:p)}));
+  const addPeriodo=()=>setDatosLiq(d=>({...d,periodos:[...d.periodos,periodoVacio()]}));
+  const delPeriodo=id=>setDatosLiq(d=>({...d,periodos:d.periodos.filter(p=>p.id!==id)}));
   const updGasto=(key,i,campo,val)=>setDatosLiq(d=>({...d,[key]:d[key].map((g,j)=>j===i?{...g,[campo]:val}:g)}));
 
   const guardar=async()=>{
     setGuardando(true);
+    const payload={mes:mesLiq,periodos:datosLiq.periodos,gastos_fer:datosLiq.gastos_fer,gastos_jc:datosLiq.gastos_jc,semanas:{}};
     const{data:ex}=await supa.from("liquidacion").select("id").eq("mes",mesLiq).single();
-    if(ex){await supa.from("liquidacion").update({semanas:datosLiq.semanas,gastos_fer:datosLiq.gastos_fer,gastos_jc:datosLiq.gastos_jc}).eq("mes",mesLiq);}
-    else{await supa.from("liquidacion").insert({mes:mesLiq,semanas:datosLiq.semanas,gastos_fer:datosLiq.gastos_fer,gastos_jc:datosLiq.gastos_jc});}
+    if(ex){await supa.from("liquidacion").update(payload).eq("mes",mesLiq);}
+    else{await supa.from("liquidacion").insert(payload);}
     setGuardando(false);showToast("✅ Liquidación guardada");
   };
 
-  const ingresosSemana=(owner)=>{
-    if(!owner)return 0;
-    return Object.entries(datosLiq.semanas).filter(([k,v])=>v===owner).reduce((acc,[k])=>{
-      const n={s1:1,s2:2,s3:3,s4:4}[k];
-      const base=new Date(mesLiq+"-01");
-      const ini=new Date(base);ini.setDate((n-1)*7+1);
-      const fin=new Date(base);fin.setDate(n*7);
-      const iniStr=ini.getFullYear()+"-"+String(ini.getMonth()+1).padStart(2,"0")+"-"+String(ini.getDate()).padStart(2,"0");
-      const finStr=fin.getFullYear()+"-"+String(fin.getMonth()+1).padStart(2,"0")+"-"+String(fin.getDate()).padStart(2,"0");
-      return acc+reservas.filter(r=>r.fecha>=iniStr&&r.fecha<=finStr&&mesKey(r.fecha)===mesLiq&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
+  const ingresosSocio=(socio)=>{
+    return datosLiq.periodos.filter(p=>p.socio===socio&&p.desde&&p.hasta).reduce((acc,p)=>{
+      return acc+reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
     },0);
   };
 
+  const ingresosPeriodo=(p)=>{
+    if(!p.desde||!p.hasta)return 0;
+    return reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
+  };
+
   const totalGastos=key=>datosLiq[key].reduce((a,g)=>a+(+g.monto||0),0);
-  const netoFer=ingresosSemana("Fer")-totalGastos("gastos_fer");
-  const netoJC=ingresosSemana("JC")-totalGastos("gastos_jc");
+  const netoFer=ingresosSocio("Fer")-totalGastos("gastos_fer");
+  const netoJC=ingresosSocio("JC")-totalGastos("gastos_jc");
   const diff=Math.abs(netoFer-netoJC);
   const deudor=netoFer>netoJC?"JC debe transferir a Fer":"Fer debe transferir a JC";
+
+  const fmtVis2=d=>{if(!d)return"";const[y,m,dia]=d.split("-");return`${dia}/${m}`;};
 
   return(<>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:".5rem"}}>
@@ -282,6 +292,7 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
       </div>
     </div>
 
+    {/* Resumen transferencia */}
     <div style={{background:"var(--dark)",borderRadius:14,padding:"1.2rem",marginBottom:"1rem",color:"var(--cream)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"1rem"}}>
       <div>
         <div style={{fontSize:".75rem",opacity:.7,textTransform:"uppercase",letterSpacing:".06em",marginBottom:".3rem"}}>Transferencia del mes</div>
@@ -300,37 +311,41 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
       </div>
     </div>
 
+    {/* Períodos */}
     <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
-      <div style={{fontWeight:700,marginBottom:".8rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Asignación de semanas</div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".6rem"}}>
-        {[["s1","Sem. 1"],["s2","Sem. 2"],["s3","Sem. 3"],["s4","Sem. 4"]].map(([k,label])=>{
-          const ini=new Date(mesLiq+"-01");ini.setDate(({s1:1,s2:8,s3:15,s4:22})[k]);
-          const fin=new Date(mesLiq+"-01");fin.setDate(({s1:7,s2:14,s3:21,s4:28})[k]);
-          const fmt2=d=>d.getDate()+"/"+String(d.getMonth()+1).padStart(2,"0");
-          const ingFer=datosLiq.semanas[k]==="Fer"?ingresosSemana("Fer_"+k):0;
-          const totalSem=reservas.filter(r=>{
-            const iniStr=ini.getFullYear()+"-"+String(ini.getMonth()+1).padStart(2,"0")+"-"+String(ini.getDate()).padStart(2,"0");
-            const finStr=fin.getFullYear()+"-"+String(fin.getMonth()+1).padStart(2,"0")+"-"+String(fin.getDate()).padStart(2,"0");
-            return r.fecha>=iniStr&&r.fecha<=finStr&&mesKey(r.fecha)===mesLiq&&r.estado!=="cancelado";
-          }).reduce((a,r)=>a+r.monto,0);
-          return(
-            <div key={k} style={{textAlign:"center"}}>
-              <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",marginBottom:".2rem"}}>{label}</div>
-              <div style={{fontSize:".65rem",color:"var(--mid)",marginBottom:".3rem"}}>{fmt2(ini)}-{fmt2(fin)}</div>
-              <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1.5px solid var(--sand)"}}>
-                {["Fer","JC",""].map(op=>(
-                  <button key={op} onClick={()=>updSemana(k,op)} style={{flex:1,padding:".4rem 0",border:"none",background:datosLiq.semanas[k]===op?"var(--bronze)":"transparent",color:datosLiq.semanas[k]===op?"#fff":"var(--mid)",cursor:"pointer",fontSize:".75rem",fontWeight:600}}>
-                    {op||"—"}
-                  </button>
-                ))}
-              </div>
-              <div style={{fontSize:".72rem",color:"var(--bronze)",marginTop:".2rem",fontWeight:700}}>${totalSem.toLocaleString()}</div>
-            </div>
-          );
-        })}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".8rem"}}>
+        <div style={{fontWeight:700,fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Períodos del mes</div>
+        <button onClick={addPeriodo} style={{padding:".3rem .8rem",borderRadius:8,border:"none",background:"var(--bronze)",color:"#fff",cursor:"pointer",fontSize:".82rem",fontWeight:600}}>+ Período</button>
+      </div>
+      {datosLiq.periodos.map(p=>(
+        <div key={p.id} style={{display:"flex",gap:".5rem",alignItems:"center",padding:".4rem 0",borderBottom:"1px solid var(--sand)",flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:".3rem",flex:2,minWidth:200}}>
+            <input type="date" value={p.desde} onChange={e=>updPeriodo(p.id,"desde",e.target.value)} style={{...S2.inp,flex:1}}/>
+            <span style={{color:"var(--mid)",fontSize:".8rem"}}>al</span>
+            <input type="date" value={p.hasta} onChange={e=>updPeriodo(p.id,"hasta",e.target.value)} style={{...S2.inp,flex:1}}/>
+          </div>
+          <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1.5px solid var(--sand)",flexShrink:0}}>
+            {["Fer","JC",""].map(op=>(
+              <button key={op} onClick={()=>updPeriodo(p.id,"socio",op)} style={{padding:".35rem .65rem",border:"none",background:p.socio===op?"var(--bronze)":"transparent",color:p.socio===op?"#fff":"var(--mid)",cursor:"pointer",fontSize:".78rem",fontWeight:600}}>
+                {op||"—"}
+              </button>
+            ))}
+          </div>
+          {p.desde&&p.hasta&&p.socio&&(
+            <span style={{fontSize:".78rem",fontWeight:700,color:"var(--green)",flexShrink:0}}>${ingresosPeriodo(p).toLocaleString()}</span>
+          )}
+          {datosLiq.periodos.length>1&&(
+            <button onClick={()=>delPeriodo(p.id)} style={{padding:".2rem .5rem",borderRadius:6,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".75rem"}}>✕</button>
+          )}
+        </div>
+      ))}
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:".6rem",fontSize:".82rem",padding:"0 .2rem"}}>
+        <span style={{color:"var(--mid)"}}>Fer: <strong style={{color:"var(--green)"}}>${ingresosSocio("Fer").toLocaleString()}</strong></span>
+        <span style={{color:"var(--mid)"}}>JC: <strong style={{color:"var(--green)"}}>${ingresosSocio("JC").toLocaleString()}</strong></span>
       </div>
     </div>
 
+    {/* Tabla de gastos */}
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
       {[["gastos_fer","Fer"],["gastos_jc","JC"]].map(([key,nombre])=>(
         <div key={key} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
@@ -348,7 +363,7 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
             <div style={{padding:".5rem .3rem .2rem",borderTop:"2px solid var(--sand)",marginTop:".3rem"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".82rem",marginBottom:".2rem"}}>
                 <span>Ingresos {nombre}</span>
-                <span style={{color:"var(--green)",fontWeight:700}}>${ingresosSemana(nombre).toLocaleString()}</span>
+                <span style={{color:"var(--green)",fontWeight:700}}>${ingresosSocio(nombre).toLocaleString()}</span>
               </div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".82rem",marginBottom:".2rem"}}>
                 <span>Gastos</span>
