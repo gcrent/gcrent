@@ -236,12 +236,12 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
     (async()=>{
       const{data}=await supa.from("liquidacion").select("*").eq("mes",mesLiq).single();
       if(data){
-        // migrar formato viejo si tiene semanas
-        if(data.semanas&&!data.periodos){
-          setDatosLiq({...data,periodos:[periodoVacio()],gastos_fer:data.gastos_fer||CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:data.gastos_jc||CONCEPTOS.map(c=>({concepto:c,monto:""}))});
-        } else {
-          setDatosLiq({...data,periodos:data.periodos||[periodoVacio()]});
-        }
+        setDatosLiq({
+          ...data,
+          periodos:data.periodos&&data.periodos.length>0?data.periodos:[periodoVacio()],
+          gastos_fer:data.gastos_fer&&data.gastos_fer.length>0?data.gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),
+          gastos_jc:data.gastos_jc&&data.gastos_jc.length>0?data.gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""})),
+        });
       } else {
         setDatosLiq({mes:mesLiq,periodos:[periodoVacio()],gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""}))});
       }
