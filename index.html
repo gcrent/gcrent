@@ -278,8 +278,8 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   const totalGastos=key=>datosLiq[key].reduce((a,g)=>a+(+g.monto||0),0);
   const netoFer=ingresosSocio("Fer")-totalGastos("gastos_fer");
   const netoJC=ingresosSocio("JC")-totalGastos("gastos_jc");
-  const diff=Math.abs(netoFer-netoJC);
-  const deudor=netoFer>netoJC?"JC debe transferir a Fer":"Fer debe transferir a JC";
+  const diff=Math.round(Math.abs(netoFer-netoJC)/2);
+  const deudor=netoFer>netoJC?"Fer debe transferir a JC":"JC debe transferir a Fer";
 
   const fmtVis2=d=>{if(!d)return"";const[y,m,dia]=d.split("-");return`${dia}/${m}`;};
 
