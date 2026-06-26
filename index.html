@@ -763,7 +763,7 @@ function App(){
   if(loading)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"100vh",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--bronze)"}}>Cargando datos…</div>;
 
   const navItems=rol==="admin"
-    ?[{id:"agenda",l:`📅 Agenda${pendientes.length>0?" ("+pendientes.length+")":""}`},{id:"calendario",l:"🗓 Cal."},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"tarifas",l:"🚚 Tarifas"},{id:"buscar",l:"🔍 Buscar"}]
+    ?[{id:"agenda",l:`📅 Agenda${pendientes.length>0?" ("+pendientes.length+")":""}`},{id:"calendario",l:"🗓 Cal."},{id:"equipos",l:"🛠 Equipos"},{id:"metricas",l:"📊 Métricas"},{id:"promos",l:"🎁 Promos"},{id:"tarifas",l:"🚚 Tarifas"},{id:"buscar",l:"🔍 Buscar"},{id:"liquidacion",l:"💼 Liquid."}]
     :rol==="transportista"
     ?[{id:"logistica",l:"🚚 Entregas"},{id:"semana",l:"💰 Mi semana"}]
     :[{id:"calendario_cliente",l:"📅 Mi calendario"},{id:"buscar_cliente",l:"🔍 Mis reservas"}];
@@ -1163,7 +1163,140 @@ function App(){
           })()}
         </>)}
 
-        {seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
+        {seccion==="liquidacion"&&rol==="admin"&&(()=>{
+          const mesActual=fmt(hoy).slice(0,7);
+          const [mesLiq,setMesLiq]=useState(mesActual);
+          const [datosLiq,setDatosLiq]=useState(null);
+          const [guardando,setGuardando]=useState(false);
+          const CONCEPTOS=[
+            "Reunión GC","Mantenimiento Kangoo","Mantenimiento Fiorino",
+            "Mantenimiento de equipos (JP)","Flete equipos nuevos/repuestos/service",
+            "Contador","Dif. para alcanzar $1,2M de Marce","Monotributo Marcelo",
+            "Gastos societarios rentas","Monotributo + IIBB (JC)","Cuota 2 de 12 Autónomos",
+            "Seguro de Kangoo","Seguro de Fiorino","Viajes al técnico",
+            "Transporte de equipos semana 1","Transporte de equipos semana 2",
+            "Transporte de equipos semana 3","Transporte de equipos semana 4",
+            "Varios","Varios"
+          ];
+          const semanas=["Semana 1","Semana 2","Semana 3","Semana 4"];
+          useEffect(()=>{
+            (async()=>{
+              const{data}=await supa.from("liquidacion").select("*").eq("mes",mesLiq).single();
+              if(data){
+                setDatosLiq(data);
+              } else {
+                const nuevo={mes:mesLiq,semanas:{s1:"",s2:"",s3:"",s4:""},gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""}))};
+                setDatosLiq(nuevo);
+              }
+            })();
+          },[mesLiq]);
+          if(!datosLiq)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
+          const updSemana=(k,v)=>setDatosLiq(d=>({...d,semanas:{...d.semanas,[k]:v}}));
+          const updGasto=(quien,idx,campo,val)=>setDatosLiq(d=>({...d,[quien]:d[quien].map((g,i)=>i===idx?{...g,[campo]:val}:g)}));
+          const guardar=async()=>{
+            setGuardando(true);
+            const{data:ex}=await supa.from("liquidacion").select("id").eq("mes",mesLiq).single();
+            if(ex){await supa.from("liquidacion").update({semanas:datosLiq.semanas,gastos_fer:datosLiq.gastos_fer,gastos_jc:datosLiq.gastos_jc}).eq("mes",mesLiq);}
+            else{await supa.from("liquidacion").insert(datosLiq);}
+            setGuardando(false);showToast("✅ Liquidación guardada");
+          };
+          const ingresosSemana=(owner)=>{
+            const keys=Object.entries(datosLiq.semanas).filter(([k,v])=>v===owner).map(([k])=>k);
+            const nums={s1:1,s2:2,s3:3,s4:4};
+            return keys.reduce((acc,k)=>{
+              const semNum=nums[k];
+              const ini=fmt(addD(new Date(mesLiq+"-01"),((semNum-1)*7)));
+              const fin=fmt(addD(new Date(mesLiq+"-01"),(semNum*7)-1));
+              const total=reservas.filter(r=>r.fecha>=ini&&r.fecha<=fin&&mesKey(r.fecha)===mesLiq&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
+              return acc+total;
+            },0);
+          };
+          const totalGastos=(quien)=>datosLiq[quien].reduce((a,g)=>a+(+g.monto||0),0);
+          const netoFer=ingresosSemana("Fer")-totalGastos("gastos_fer");
+          const netoJC=ingresosSemana("JC")-totalGastos("gastos_jc");
+          const diff=Math.abs(netoFer-netoJC);
+          const deudor=netoFer>netoJC?"JC debe transferir a Fer":"Fer debe transferir a JC";
+          return(<>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:".5rem"}}>
+              <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>💼 Liquidación</h2>
+              <div style={{display:"flex",gap:".5rem",alignItems:"center"}}>
+                <input type="month" value={mesLiq} onChange={e=>setMesLiq(e.target.value)} style={{...S.inp,width:"auto"}}/>
+                {btn(guardando?"Guardando...":"💾 Guardar",guardar,"var(--bronze)")}
+              </div>
+            </div>
+
+            {/* Resumen transferencia */}
+            <div style={{background:"var(--dark)",borderRadius:14,padding:"1.2rem",marginBottom:"1rem",color:"var(--cream)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"1rem"}}>
+              <div>
+                <div style={{fontSize:".75rem",opacity:.7,textTransform:"uppercase",letterSpacing:".06em",marginBottom:".3rem"}}>Resultado del mes</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.8rem",color:"var(--gold)"}}>${diff.toLocaleString()}</div>
+                <div style={{fontSize:".85rem",marginTop:".2rem",color:netoFer>netoJC?"#FCA5A5":"#86EFAC"}}>{deudor}</div>
+              </div>
+              <div style={{display:"flex",gap:"2rem"}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto Fer</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem"}}>${netoFer.toLocaleString()}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto JC</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem"}}>${netoJC.toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Asignación de semanas */}
+            <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem",marginBottom:"1rem"}}>
+              <div style={{fontWeight:700,marginBottom:".8rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Asignación de semanas</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:".6rem"}}>
+                {[["s1","Semana 1"],["s2","Semana 2"],["s3","Semana 3"],["s4","Semana 4"]].map(([k,label])=>(
+                  <div key={k} style={{textAlign:"center"}}>
+                    <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",marginBottom:".3rem"}}>{label}</div>
+                    <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1.5px solid var(--sand)"}}>
+                      {["Fer","JC",""].map(op=>(
+                        <button key={op} onClick={()=>updSemana(k,op)} style={{flex:1,padding:".4rem 0",border:"none",background:datosLiq.semanas[k]===op?"var(--bronze)":"transparent",color:datosLiq.semanas[k]===op?"#fff":"var(--mid)",cursor:"pointer",fontSize:".78rem",fontWeight:600}}>
+                          {op||"—"}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{fontSize:".72rem",color:"var(--mid)",marginTop:".2rem"}}>${ingresosSemana(datosLiq.semanas[k]===("Fer"||"JC")?datosLiq.semanas[k]:"__none__").toLocaleString()}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tabla de gastos */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
+              {[["gastos_fer","Fer"],["gastos_jc","JC"]].map(([key,nombre])=>(
+                <div key={key} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
+                  <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>Gastos {nombre}</span>
+                    <span style={{fontSize:".85rem",color:"var(--gold)"}}>Total: ${totalGastos(key).toLocaleString()}</span>
+                  </div>
+                  <div style={{padding:".5rem"}}>
+                    {datosLiq[key].map((g,i)=>(
+                      <div key={i} style={{display:"flex",gap:".4rem",alignItems:"center",padding:".3rem 0",borderBottom:"1px solid var(--sand)"}}>
+                        <input value={g.concepto} onChange={e=>updGasto(key,i,"concepto",e.target.value)} style={{...S.inp,flex:2,fontSize:".78rem",padding:".3rem .5rem"}}/>
+                        <input type="number" value={g.monto} onChange={e=>updGasto(key,i,"monto",e.target.value)} placeholder="0" style={{...S.inp,flex:1,fontSize:".78rem",padding:".3rem .5rem",textAlign:"right"}}/>
+                      </div>
+                    ))}
+                    <div style={{display:"flex",justifyContent:"space-between",padding:".5rem .3rem",fontWeight:700,fontSize:".85rem"}}>
+                      <span>Ingresos semanas {nombre}</span>
+                      <span style={{color:"var(--green)"}}>${ingresosSemana(nombre).toLocaleString()}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:".2rem .3rem",fontWeight:700,fontSize:".85rem"}}>
+                      <span>Gastos</span>
+                      <span style={{color:"var(--red)"}}>${totalGastos(key).toLocaleString()}</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",padding:".2rem .3rem",fontWeight:700,fontSize:"1rem",borderTop:"2px solid var(--sand)",marginTop:".3rem"}}>
+                      <span>Neto {nombre}</span>
+                      <span style={{color:(nombre==="Fer"?netoFer:netoJC)>=0?"var(--green)":"var(--red)"}}>${(nombre==="Fer"?netoFer:netoJC).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>);
+        })()}{seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
           const mis=reservas.filter(r=>r.clienteTel===clienteTel||r.clienteEmail===clienteTel).sort((a,b)=>a.fecha.localeCompare(b.fecha));
           return(<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>🔍 Mis Reservas</h2>
