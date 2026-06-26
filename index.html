@@ -1036,6 +1036,10 @@ function App(){
                     <div style={{flex:1,cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
                       <div style={{fontWeight:600,fontSize:".9rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div>
                       <div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)}{r.localidad?` · ${r.localidad}`:""}</div>
+                      <div style={{fontSize:".78rem",display:"flex",gap:".8rem",marginTop:".15rem"}}>
+                        <span style={{color:"var(--bronze)",fontWeight:700}}>💲 ${r.monto.toLocaleString()}</span>
+                        <span style={{color:"var(--blue)",fontWeight:700}}>🚚 ${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</span>
+                      </div>
                     </div>
                     {badge(r.estado)}
                     <div style={{display:"flex",gap:".3rem"}} onClick={e=>e.stopPropagation()}>
