@@ -255,12 +255,17 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   const delPeriodo=id=>setDatosLiq(d=>({...d,periodos:d.periodos.filter(p=>p.id!==id)}));
   const updGasto=(key,i,campo,val)=>setDatosLiq(d=>({...d,[key]:d[key].map((g,j)=>j===i?{...g,[campo]:val}:g)}));
 
-const guardar=async(datos=datosLiq)=>{
+const guardar=async()=>{     const datos=datosLiq;
     setGuardando(true);
     const payload={mes:mesLiq,periodos:datos.periodos,gastos_fer:datos.gastos_fer,gastos_jc:datos.gastos_jc,semanas:{}};
     const{data:ex}=await supa.from("liquidacion").select("id").eq("mes",mesLiq).single();
-    if(ex){await supa.from("liquidacion").update(payload).eq("mes",mesLiq);}
-    else{await supa.from("liquidacion").insert(payload);}
+    if(ex){
+      const{error}=await supa.from("liquidacion").update(payload).eq("mes",mesLiq);
+      if(error){showToast("❌ Error: "+error.message);setGuardando(false);return;}
+    } else {
+      const{error}=await supa.from("liquidacion").insert(payload);
+      if(error){showToast("❌ Error: "+error.message);setGuardando(false);return;}
+    }
     setGuardando(false);showToast("✅ Guardado");
   };
 
