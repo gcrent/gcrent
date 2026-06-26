@@ -264,11 +264,7 @@ const guardar=async(datos=datosLiq)=>{
     setGuardando(false);showToast("✅ Guardado");
   };
 
-  useEffect(()=>{
-    if(!datosLiq)return;
-    const timer=setTimeout(()=>guardar(datosLiq),2000);
-    return()=>clearTimeout(timer);
-  },[datosLiq]);
+  
 
   const exportarExcelLiq=()=>{
     const wb=window.XLSX.utils.book_new();
