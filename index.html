@@ -660,6 +660,8 @@ function App(){
   const [filtroEst,setFiltroEst]=useState("");
   const [filterMes,setFilterMes]=useState("");
   const [dupFecha,setDupFecha]=useState("");
+  const [mostrarCal,setMostrarCal]=useState(true);
+  const [filtroCal,setFiltroCal]=useState({nombre:"",equipo:""});
   const [filtroTransp,setFiltroTransp]=useState("pendiente");
   const [periodoTransp,setPeriodoTransp]=useState("semana");
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:""});
@@ -817,7 +819,7 @@ function App(){
   const resSem=reservas.filter(r=>{const d=new Date(r.fecha+"T12:00");return d>=lunesSem&&d<=finSem&&r.estado!=="cancelado";});
   const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte||TARIFA_BASE),0);
   const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
-  const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);
+  const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);   const resDiaFiltrada=useMemo(()=>{     let rs=resDia;     if(filtroCal.nombre)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroCal.nombre.toLowerCase()));     if(filtroCal.equipo)rs=rs.filter(r=>r.equipoId===+filtroCal.equipo||r.comboId===filtroCal.equipo);     return rs;   },[resDia,filtroCal]);
 
   const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
@@ -1013,11 +1015,14 @@ function App(){
         </>)}
 
         {seccion==="calendario"&&rol==="admin"&&(<>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem",flexWrap:"wrap",gap:".5rem"}}>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>🗓 Calendario</h2>
-            {btn("+ Nueva reserva",()=>{setForm({...FDEF,fecha:selDay});setModal("nueva");},"var(--gold)")}
+            <div style={{display:"flex",gap:".5rem"}}>
+              {btn(mostrarCal?"🗓 Ocultar calendario":"🗓 Mostrar calendario",()=>setMostrarCal(v=>!v),"var(--mid)")}
+              {btn("+ Nueva reserva",()=>{setForm({...FDEF,fecha:selDay});setModal("nueva");},"var(--gold)")}
+            </div>
           </div>
-          <CalendarView/>
+          {mostrarCal&&<CalendarView/>}
           {selDay&&(
             <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".9rem",overflow:"hidden"}}>
               <div style={{background:"var(--light)",padding:".65rem 1rem",fontWeight:700,fontSize:".9rem",borderBottom:"1px solid var(--sand)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".4rem"}}>
@@ -1028,9 +1033,24 @@ function App(){
                   return<span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.05rem",color:"var(--bronze)"}}>{esPasado?"💰 Cobrado":"📋 Agendado"}: ${total.toLocaleString()}</span>;
                 })()}
               </div>
-              {resDia.length===0
-                ?<div style={{padding:"1rem",textAlign:"center",color:"var(--mid)"}}>Sin turnos. Usá "+ Nueva reserva" para agendar.</div>
-                :resDia.map(r=>(
+             <div style={{padding:".6rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",gap:".5rem",flexWrap:"wrap",alignItems:"flex-end"}}>
+                  <div style={{flex:1,minWidth:140}}>
+                    <label style={{display:"block",fontSize:".68rem",fontWeight:600,color:"var(--mid)",marginBottom:".2rem",textTransform:"uppercase"}}>Nombre</label>
+                    <input value={filtroCal.nombre} onChange={e=>setFiltroCal(f=>({...f,nombre:e.target.value}))} placeholder="Filtrar por nombre..." style={{width:"100%",padding:".35rem .6rem",border:"1.5px solid var(--sand)",borderRadius:7,fontFamily:"'DM Sans',sans-serif",fontSize:".82rem",background:"var(--light)"}}/>
+                  </div>
+                  <div style={{flex:1,minWidth:140}}>
+                    <label style={{display:"block",fontSize:".68rem",fontWeight:600,color:"var(--mid)",marginBottom:".2rem",textTransform:"uppercase"}}>Equipo</label>
+                    <select value={filtroCal.equipo} onChange={e=>setFiltroCal(f=>({...f,equipo:e.target.value}))} style={{width:"100%",padding:".35rem .6rem",border:"1.5px solid var(--sand)",borderRadius:7,fontFamily:"'DM Sans',sans-serif",fontSize:".82rem",background:"var(--light)"}}>
+                      <option value="">Todos</option>
+                      {combos.map(c=><option key={c.id} value={c.id}>📦 {c.nombre}</option>)}
+                      {equipos.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
+                    </select>
+                  </div>
+                  {(filtroCal.nombre||filtroCal.equipo)&&<button onClick={()=>setFiltroCal({nombre:"",equipo:""})} style={{padding:".35rem .7rem",borderRadius:7,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".82rem"}}>✕</button>}
+                </div>
+                {resDiaFiltrada.length===0
+                ?<div style={{padding:"1rem",textAlign:"center",color:"var(--mid)"}}>Sin turnos{filtroCal.nombre||filtroCal.equipo?" para ese filtro":". Usá '+ Nueva reserva' para agendar."}.</div>
+                :resDiaFiltrada.map(r=>(
                   <div key={r.id} style={{padding:".6rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem",background:r.estado==="pendiente"?"#FFFBEB":"#fff"}}>
                     {RC(r).map((c,i)=><div key={i} style={{width:11,height:11,borderRadius:"50%",background:c,flexShrink:0}}/>)}
                     <div style={{flex:1,cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
