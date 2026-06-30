@@ -709,7 +709,7 @@ function App(){
   useEffect(()=>{if(rol==="publico")cargarDatos();},[rol]);
 
   const guardarReserva=async()=>{
-    if(!form.clienteNombre||!form.fecha)const nombreCompleto=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;{showToast("⚠️ Completá nombre y fecha");return;}
+    if(!form.clienteNombre||!form.fecha){showToast("⚠️ Completá nombre y fecha");return;}     const nombreCompleto=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(form.monto===""||form.monto===null||form.monto===undefined){showToast("⚠️ Ingresá el precio de alquiler");return;}
     const monto=+form.monto;
     if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null)){showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;}
