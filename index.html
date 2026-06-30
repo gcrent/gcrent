@@ -819,7 +819,7 @@ function App(){
   const resSem=reservas.filter(r=>{const d=new Date(r.fecha+"T12:00");return d>=lunesSem&&d<=finSem&&r.estado!=="cancelado";});
   const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte||TARIFA_BASE),0);
   const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
-  const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);   const resDiaFiltrada=useMemo(()=>{     let rs=resDia;     if(filtroCal.nombre)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroCal.nombre.toLowerCase()));     if(filtroCal.equipo)rs=rs.filter(r=>r.equipoId===+filtroCal.equipo||r.comboId===filtroCal.equipo);     return rs;   },[resDia,filtroCal]);
+  const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);   const hayFiltroCal=!!(filtroCal.nombre||filtroCal.equipo);   const resDiaFiltrada=useMemo(()=>{     if(hayFiltroCal){       const fmtHoy2=fmt(hoy);       const finRango=fmt(addD(hoy,365));       let rs=reservas.filter(r=>r.fecha>=fmtHoy2&&r.fecha<=finRango&&r.estado!=="cancelado");       if(filtroCal.nombre)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroCal.nombre.toLowerCase()));       if(filtroCal.equipo)rs=rs.filter(r=>r.equipoId===+filtroCal.equipo||r.comboId===filtroCal.equipo);       return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));     }     return resDia;   },[resDia,filtroCal,hayFiltroCal,reservas]);
 
   const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
@@ -1026,7 +1026,7 @@ function App(){
           {selDay&&(
             <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:12,marginTop:".9rem",overflow:"hidden"}}>
               <div style={{background:"var(--light)",padding:".65rem 1rem",fontWeight:700,fontSize:".9rem",borderBottom:"1px solid var(--sand)",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".4rem"}}>
-                <span>{fmtVis(selDay)} · {resDia.length} turno{resDia.length!==1?"s":""}</span>
+                <span>{hayFiltroCal?"Resultados filtrados":fmtVis(selDay)} · {resDiaFiltrada.length} turno{resDiaFiltrada.length!==1?"s":""}</span>
                 {resDia.length>0&&(()=>{
                   const esPasado=selDay<fmt(hoy);
                   const total=esPasado?resDia.filter(r=>r.estado==="completado").reduce((a,r)=>a+r.monto,0):resDia.reduce((a,r)=>a+r.monto,0);
@@ -1054,7 +1054,7 @@ function App(){
                   <div key={r.id} style={{padding:".6rem 1rem",borderBottom:"1px solid var(--sand)",display:"flex",alignItems:"center",gap:".7rem",background:r.estado==="pendiente"?"#FFFBEB":"#fff"}}>
                     {RC(r).map((c,i)=><div key={i} style={{width:11,height:11,borderRadius:"50%",background:c,flexShrink:0}}/>)}
                     <div style={{flex:1,cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>
-                      <div style={{fontWeight:600,fontSize:".9rem"}}>{r.horaEntrega||"—"} — {r.clienteNombre}</div>
+                      <div style={{fontWeight:600,fontSize:".9rem"}}>{hayFiltroCal?fmtVis(r.fecha)+" — ":""}{r.horaEntrega||"—"} — {r.clienteNombre}</div>
                       <div style={{fontSize:".78rem",color:"var(--mid)"}}>{IL(r)}{r.localidad?` · ${r.localidad}`:""}</div>
                       <div style={{fontSize:".78rem",display:"flex",gap:".8rem",marginTop:".15rem"}}>
                         <span style={{color:"var(--bronze)",fontWeight:700}}>💲 ${r.monto.toLocaleString()}</span>
