@@ -136,7 +136,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
   },[form.equipoId,form.localidad,form.usarCombo]);
   const autoHoraRetiro=val=>{fv("horaEntrega",val);if(val){const[h,m]=val.split(":").map(Number);fv("horaRetiro",`${String((h+12)%24).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }};
   const sugerencias=useMemo(()=>{
-    if(form.clienteNombre.length<2)return[];
+    if(excludeId||form.clienteNombre.length<2)return[];
     const m=new Map();reservas.forEach(r=>{if(r.clienteNombre)m.set(r.clienteNombre,r);});
     return[...m.values()].filter(r=>r.clienteNombre.toLowerCase().includes(form.clienteNombre.toLowerCase())&&r.clienteNombre!==form.clienteNombre).slice(0,5);
   },[form.clienteNombre,reservas]);
