@@ -424,7 +424,7 @@ const guardar=async()=>{     const datos=datosLiq;
   const [selCombo,setSelCombo]=useState(null);
   const [usarCombo,setUsarCombo]=useState(false);
   const [enviando,setEnviando]=useState(false);
-  const [pf,setPf]=useState({nombre:"",tel:"",direccion:"",localidad:"",senia:""});   const [filtroEquipo,setFiltroEquipo]=useState(null);   const [filtroEsCombo,setFiltroEsCombo]=useState(false);
+  const [pf,setPf]=useState({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});   const [filtroEquipo,setFiltroEquipo]=useState(null);   const [filtroEsCombo,setFiltroEsCombo]=useState(false);
   const upd=(k,v)=>setPf(f=>({...f,[k]:v}));
   const fmtHoy=fmt(hoy);
 
@@ -487,7 +487,7 @@ const selDia=d=>{
   const enviar=async()=>{
     if(!pf.nombre||!pf.tel||!pf.localidad){alert("Completá nombre, teléfono y localidad");return;}
     setEnviando(true);
-    const nueva={id:genId(),clienteNombre:pf.nombre,clienteEmail:"",clienteTel:pf.tel,equipoId:usarCombo?null:(selEquipo?.id||null),comboId:usarCombo?(selCombo?.id||null):null,fecha:selDay,horaEntrega:"",horaRetiro:"",estado:"pendiente",monto:precio,senia:+pf.senia||0,direccion:pf.direccion,localidad:pf.localidad,tarifaTransporte:tarifa,repeticion:"none",esRecurrencia:false,serieId:null};
+    const nueva={id:genId(),clienteNombre:pf.apellido?pf.nombre+" "+pf.apellido:pf.nombre,clienteEmail:"",clienteTel:pf.tel,equipoId:usarCombo?null:(selEquipo?.id||null),comboId:usarCombo?(selCombo?.id||null):null,fecha:selDay,horaEntrega:"",horaRetiro:"",estado:"pendiente",monto:precio,senia:+pf.senia||0,direccion:pf.direccion,localidad:pf.localidad,tarifaTransporte:tarifa,repeticion:"none",esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){alert("Error: "+error.message);setEnviando(false);return;}
     const nombreEq=usarCombo?("📦 "+selCombo.nombre):(selEquipo.emoji+" "+selEquipo.nombre);
@@ -508,7 +508,7 @@ const selDia=d=>{
           <div>📍 {pf.localidad}</div>
           <div style={{fontWeight:700,color:"var(--bronze)",marginTop:".4rem"}}>${precio.toLocaleString()}</div>
         </div>
-        <button onClick={()=>{setPaso(1);setSelDay(null);setSelEquipo(null);setSelCombo(null);setPf({nombre:"",tel:"",direccion:"",localidad:""});}} style={{width:"100%",padding:".75rem",borderRadius:12,border:"none",background:"var(--bronze)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:700,cursor:"pointer",marginBottom:".6rem"}}>Hacer otra solicitud</button>
+        <button onClick={()=>{setPaso(1);setSelDay(null);setSelEquipo(null);setSelCombo(null);setPf({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});}} style={{width:"100%",padding:".75rem",borderRadius:12,border:"none",background:"var(--bronze)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:700,cursor:"pointer",marginBottom:".6rem"}}>Hacer otra solicitud</button>
         <button onClick={onVolver} style={{width:"100%",padding:".65rem",borderRadius:12,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",cursor:"pointer"}}>Volver al inicio</button>
       </div>
     </div>
@@ -610,7 +610,7 @@ const selDia=d=>{
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--gold)",marginTop:".3rem"}}>${precio.toLocaleString()}</div>
           </div>
           <div style={{background:"#fff",borderRadius:14,padding:"1.2rem"}}>
-            <div style={S.fg}><label style={S.lbl}>Tu nombre *</label><input value={pf.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="María González" style={S.inp}/></div>
+            <div style={S.fg}><label style={S.lbl}>Tu nombre *</label><input value={pf.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="María José" style={S.inp}/></div>             <div style={S.fg}><label style={S.lbl}>Tu apellido *</label><input value={pf.apellido||""} onChange={e=>upd("apellido",e.target.value)} placeholder="González" style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>WhatsApp *</label><input value={pf.tel} onChange={e=>upd("tel",e.target.value)} placeholder="3624123456" style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Dirección</label><input value={pf.direccion} onChange={e=>upd("direccion",e.target.value)} placeholder="Av. ..." style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Localidad *</label>
