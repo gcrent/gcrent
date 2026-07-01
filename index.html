@@ -491,7 +491,7 @@ const selDia=d=>{
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){alert("Error: "+error.message);setEnviando(false);return;}
     const nombreEq=usarCombo?("📦 "+selCombo.nombre):(selEquipo.emoji+" "+selEquipo.nombre);
-    const msg=encodeURIComponent("📋 *Nueva solicitud de reserva*\n\n👤 "+pf.nombre+"\n📞 "+pf.tel+"\n📅 "+fmtFull(selDay)+"\n🛠 "+nombreEq+"\n📍 "+pf.localidad+(pf.direccion?" — "+pf.direccion:"")+"\n💰 $"+precio.toLocaleString()+(+pf.senia>=5000?"\n💵 Seña: $"+(+pf.senia).toLocaleString():"")+"\n\nPendiente de confirmación.");
+    const msg=encodeURIComponent("📋 *Nueva solicitud de reserva*\n\n👤 "+(pf.apellido?pf.nombre+" "+pf.apellido:pf.nombre)+"\n📞 "+pf.tel+"\n📅 "+fmtFull(selDay)+"\n🛠 "+nombreEq+"\n📍 "+pf.localidad+(pf.direccion?" — "+pf.direccion:"")+"\n💰 $"+precio.toLocaleString()+(+pf.senia>=5000?"\n💵 Seña: $"+(+pf.senia).toLocaleString():"")+"\n\nPendiente de confirmación.");
     window.open("https://wa.me/"+WA_NUM+"?text="+msg,"_blank");
     setPaso(4);setEnviando(false);
   };
