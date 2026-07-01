@@ -620,7 +620,7 @@ const selDia=d=>{
                 <optgroup label="— Zona 2 —">{["Corrientes","Puerto Tirol, Chaco","Margarita Belén, Chaco","Colonia Benítez, Chaco"].map(l=><option key={l} value={l}>{l}</option>)}</optgroup>
               </select>
             </div>
-            <div style={S.fg}>               <label style={S.lbl}>Seña (mínimo $5.000, opcional)</label>               <input type="number" min="5000" value={pf.senia} onChange={e=>upd("senia",e.target.value)} placeholder="0" style={S.inp}/>               {+pf.senia>0&&+pf.senia<5000&&<div style={{color:"var(--red)",fontSize:".75rem",marginTop:".2rem"}}>La seña mínima es $5.000</div>}             </div>             {pf.localidad&&<div style={{background:"var(--light)",borderRadius:8,padding:".5rem .8rem",fontSize:".82rem",color:"var(--mid)",marginBottom:".8rem"}}>🚚 Tarifa de transporte: <strong>${tarifa.toLocaleString()}</strong></div>}
+            <div style={S.fg}>               <label style={S.lbl}>Seña (mínimo $5.000, opcional)</label>               <input type="number" min="5000" value={pf.senia} onChange={e=>upd("senia",e.target.value)} placeholder="0" style={S.inp}/>               {+pf.senia>0&&+pf.senia<5000&&<div style={{color:"var(--red)",fontSize:".75rem",marginTop:".2rem"}}>La seña mínima es $5.000</div>}             </div>             {pf.localidad&&<div style={{background:"var(--light)",borderRadius:8,padding:".5rem .8rem",fontSize:".82rem",color:"var(--mid)",marginBottom:".8rem"}}>📍 Localidad confirmada</div>}
           </div>
           <button onClick={enviar} disabled={enviando} style={{width:"100%",padding:".9rem",borderRadius:12,border:"none",background:enviando?"#aaa":"var(--green)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:700,cursor:enviando?"wait":"pointer",marginTop:"1rem"}}>
             {enviando?"Enviando...":"📲 Enviar solicitud por WhatsApp"}
@@ -716,7 +716,7 @@ function App(){
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`⚠️ Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
-    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null};
+    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null};
     const todas=[base,...genRecs(base,form.repeticion,12)];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("❌ "+error.message);return;}
@@ -734,10 +734,10 @@ function App(){
     if(!form.fecha){showToast("⚠️ Fecha requerida");return;}const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;}
     const monto=form.monto!==""?+form.monto:editRes.monto;
-    const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:+form.tarifaTransporte||TARIFA_BASE,repeticion:form.repeticion};
+    const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion};
     const{error}=await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
     if(error){showToast("❌ "+error.message);return;}
-    setReservas(rs=>rs.map(x=>x.id===editRes.id?updated:x));
+    setReservas(rs=>rs.map(x=>x.id===editRes.id?{...updated}:x));
     setModal(null);setEditRes(null);setForm(FDEF);showToast("✅ Actualizada");
   };
 
