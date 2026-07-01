@@ -1030,7 +1030,7 @@ function App(){
                 <span>{hayFiltroCal?"Resultados filtrados":fmtVis(selDay)} · {resDiaFiltrada.length} turno{resDiaFiltrada.length!==1?"s":""}</span>
                 {resDia.length>0&&(()=>{
                   const esPasado=selDay<fmt(hoy);
-                  const total=esPasado?resDia.filter(r=>r.estado==="completado").reduce((a,r)=>a+r.monto,0):resDia.reduce((a,r)=>a+r.monto,0);
+                  const total=esPasado?resDia.filter(r=>r.estado==="completado").reduce((a,r)=>a+r.monto,0)+resDia.filter(r=>r.estado==="sena").reduce((a,r)=>a+r.senia,0):resDia.reduce((a,r)=>a+r.monto,0);
                   return<span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.05rem",color:"var(--bronze)"}}>{esPasado?"💰 Cobrado":"📋 Agendado"}: ${total.toLocaleString()}</span>;
                 })()}
               </div>
