@@ -794,7 +794,7 @@ function App(){
   const togglePromo=async p=>{const{error}=await supa.from("promos").update({activa:!p.activa}).eq("id",p.id);if(error){showToast("❌ Error");return;}setPromos(ps=>ps.map(x=>x.id===p.id?{...x,activa:!x.activa}:x));};
 
   const resActivas=reservas.filter(r=>!["cancelado","completado"].includes(r.estado));
-  const resComp=reservas.filter(r=>r.estado==="completado");
+  const [filtroMesMetricas,setFiltroMesMetricas]=useState(mesKey(hoy));   const resComp=reservas.filter(r=>r.estado==="completado"&&mesKey(r.fecha)===filtroMesMetricas);
   const resCan=reservas.filter(r=>r.estado==="cancelado");
   const ingresos=resComp.reduce((a,r)=>a+r.monto,0);
   const senias=reservas.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+r.senia,0);
@@ -1155,11 +1155,11 @@ function App(){
 
         {seccion==="metricas"&&rol==="admin"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem",flexWrap:"wrap",gap:".5rem"}}>
-            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>📊 Métricas</h2>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>📊 Métricas</h2>             <input type="month" value={filtroMesMetricas} onChange={e=>setFiltroMesMetricas(e.target.value)} style={{padding:".4rem .6rem",borderRadius:8,border:"1.5px solid var(--sand)",fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",background:"var(--light)"}}/>
             {btn("📥 Excel",exportarExcel,"var(--green)")}{btn("💾 Backup completo",exportarBackup,"var(--blue)")}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:"1rem",marginBottom:"1.2rem"}}>
-            {[{l:"Ingresos cobrados",v:`$${ingresos.toLocaleString()}`,s:`${resComp.length} completados`,c:"var(--bronze)"},{l:"Señas recibidas",v:`$${senias.toLocaleString()}`,s:"En garantía",c:"var(--gold)"},{l:"Turnos activos",v:resActivas.length,s:`de ${reservas.length} totales`,c:"var(--green)"},{l:"Cancelaciones",v:resCan.length,s:`${equiposOciosos.length} equipos ociosos`,c:"var(--red)"}].map((m,i)=>(
+            {[{l:"Ingresos cobrados",v:`$${ingresos.toLocaleString()}`,s:`${resComp.length} completados · ${MESES[+filtroMesMetricas.split("-")[1]-1]} ${filtroMesMetricas.split("-")[0]}`,c:"var(--bronze)"},{l:"Señas recibidas",v:`$${senias.toLocaleString()}`,s:"En garantía",c:"var(--gold)"},{l:"Turnos activos",v:resActivas.length,s:`de ${reservas.length} totales`,c:"var(--green)"},{l:"Cancelaciones",v:resCan.length,s:`${equiposOciosos.length} equipos ociosos`,c:"var(--red)"}].map((m,i)=>(
               <div key={i} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",borderLeft:`4px solid ${m.c}`}}>
                 <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>{m.l}</div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--dark)"}}>{m.v}</div>
