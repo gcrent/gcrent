@@ -338,12 +338,24 @@ const guardar=async()=>{     const datos=datosLiq;
       </div>
       <div style={{display:"flex",gap:"2rem"}}>
         <div style={{textAlign:"center"}}>
-          <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto Fer</div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:netoFer>=0?"#86EFAC":"#FCA5A5"}}>${netoFer.toLocaleString()}</div>
+         <div style={{display:"flex",gap:"2rem",alignItems:"center"}}>
+          <div style={{textAlign:"center",borderRight:"1px solid rgba(255,255,255,.15)",paddingRight:"2rem"}}>
+            <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase",marginBottom:".2rem"}}>Total facturado</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>${(ingresosSocio("Fer")+ingresosSocio("JC")).toLocaleString()}</div>
+            <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase",marginBottom:".2rem",marginTop:".5rem"}}>Total gastos</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",color:"#FCA5A5"}}>-${(totalGastos("gastos_fer")+totalGastos("gastos_jc")).toLocaleString()}</div>
+            <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase",marginBottom:".2rem",marginTop:".5rem"}}>Neto buche</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",color:"#86EFAC"}}>${(netoFer+netoJC).toLocaleString()}</div>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto Fer</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:netoFer>=0?"#86EFAC":"#FCA5A5"}}>${netoFer.toLocaleString()}</div>
+          </div>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto JC</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:netoJC>=0?"#86EFAC":"#FCA5A5"}}>${netoJC.toLocaleString()}</div>
+          </div>
         </div>
-        <div style={{textAlign:"center"}}>
-          <div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase"}}>Neto JC</div>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",color:netoJC>=0?"#86EFAC":"#FCA5A5"}}>${netoJC.toLocaleString()}</div>
         </div>
       </div>
     </div>
