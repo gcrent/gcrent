@@ -796,7 +796,7 @@ function App(){
   const resActivas=reservas.filter(r=>!["cancelado","completado"].includes(r.estado));
   const [filtroMesMetricas,setFiltroMesMetricas]=useState(mesKey(hoy));   const resComp=reservas.filter(r=>r.estado==="completado"&&mesKey(r.fecha)===filtroMesMetricas);
   const resCan=reservas.filter(r=>r.estado==="cancelado");
-  const ingresos=resComp.reduce((a,r)=>a+r.monto,0);
+  const ingresos=resComp.reduce((a,r)=>a+r.monto,0);   const senias=reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===filtroMesMetricas).reduce((a,r)=>a+r.senia,0);
   const senias=reservas.filter(r=>r.estado!=="cancelado").reduce((a,r)=>a+r.senia,0);
   const hace14=fmt(addD(hoy,-14));
   const equiposOciosos=equipos.filter(e=>!reservas.some(r=>r.equipoId===e.id&&r.fecha>=hace14&&r.estado!=="cancelado"));
