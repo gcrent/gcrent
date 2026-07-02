@@ -822,7 +822,31 @@ function App(){
   const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
   const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);   const hayFiltroCal=!!(filtroCal.nombre||filtroCal.equipo);   const resDiaFiltrada=useMemo(()=>{     if(hayFiltroCal){       const fmtHoy2=fmt(hoy);       const finRango=fmt(addD(hoy,365));       let rs=reservas.filter(r=>r.fecha>=fmtHoy2&&r.fecha<=finRango&&r.estado!=="cancelado");       if(filtroCal.nombre)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroCal.nombre.toLowerCase()));       if(filtroCal.equipo)rs=rs.filter(r=>r.equipoId===+filtroCal.equipo||r.comboId===filtroCal.equipo);       return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));     }     return resDia;   },[resDia,filtroCal,hayFiltroCal,reservas]);
 
-  const exportarExcel=()=>{
+  const exportarBackup=()=>{
+    const wb=window.XLSX.utils.book_new();
+    const wsRes=window.XLSX.utils.aoa_to_sheet([
+      ["ID","Cliente","Tel","Email","Equipo","Fecha","Hora Entrega","Hora Retiro","Estado","Monto","Seña","Dirección","Localidad","Transporte","Repetición"],
+      ...reservas.map(r=>[r.id,r.clienteNombre,r.clienteTel,r.clienteEmail,IL(r),r.fecha,r.horaEntrega,r.horaRetiro,estadoLabel(r.estado),r.monto,r.senia,r.direccion,r.localidad,r.tarifaTransporte,r.repeticion])
+    ]);
+    window.XLSX.utils.book_append_sheet(wb,wsRes,"Reservas");
+    const wsCombos=window.XLSX.utils.aoa_to_sheet([
+      ["ID","Nombre","Descripción","Precio","Equipos"],
+      ...combos.map(c=>[c.id,c.nombre,c.desc,c.precio,c.equipoIds.join(",")])
+    ]);
+    window.XLSX.utils.book_append_sheet(wb,wsCombos,"Combos");
+    const wsPromos=window.XLSX.utils.aoa_to_sheet([
+      ["ID","Equipo","Título","Descuento %","Activa"],
+      ...promos.map(p=>[p.id,eq(p.equipoId)?.nombre,p.titulo,p.descuento,p.activa?"Sí":"No"])
+    ]);
+    window.XLSX.utils.book_append_sheet(wb,wsPromos,"Promos");
+    const wsEq=window.XLSX.utils.aoa_to_sheet([
+      ["ID","Nombre","Emoji","Descripción","Precio"],
+      ...equipos.map(e=>[e.id,e.nombre,e.emoji,e.desc,e.precio])
+    ]);
+    window.XLSX.utils.book_append_sheet(wb,wsEq,"Equipos");
+    window.XLSX.writeFile(wb,`GCRent_Backup_${fmt(hoy).replace(/-/g,"")}.xlsx`);
+    showToast("💾 Backup descargado");
+  };const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
     const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Localidad","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.localidad||"",r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||TARIFA_BASE,estadoLabel(r.estado)])]);
     window.XLSX.utils.book_append_sheet(wb,ws,"Reservas");
@@ -1132,7 +1156,7 @@ function App(){
         {seccion==="metricas"&&rol==="admin"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem",flexWrap:"wrap",gap:".5rem"}}>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>📊 Métricas</h2>
-            {btn("📥 Excel",exportarExcel,"var(--green)")}
+            {btn("📥 Excel",exportarExcel,"var(--green)")}{btn("💾 Backup completo",exportarBackup,"var(--blue)")}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:"1rem",marginBottom:"1.2rem"}}>
             {[{l:"Ingresos cobrados",v:`$${ingresos.toLocaleString()}`,s:`${resComp.length} completados`,c:"var(--bronze)"},{l:"Señas recibidas",v:`$${senias.toLocaleString()}`,s:"En garantía",c:"var(--gold)"},{l:"Turnos activos",v:resActivas.length,s:`de ${reservas.length} totales`,c:"var(--green)"},{l:"Cancelaciones",v:resCan.length,s:`${equiposOciosos.length} equipos ociosos`,c:"var(--red)"}].map((m,i)=>(
