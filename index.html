@@ -802,7 +802,7 @@ function App(){
   
   const hace14=fmt(addD(hoy,-14));
   const equiposOciosos=equipos.filter(e=>!reservas.some(r=>r.equipoId===e.id&&r.fecha>=hace14&&r.estado!=="cancelado"));
-  const rankingClientes=useMemo(()=>
+  const rankingClientes=useMemo(()=>{const m={};reservas.filter(r=>r.estado!=="cancelado").forEach(r=>{const k=r.clienteTel||r.clienteEmail||r.clienteNombre;if(!m[k])m[k]={nombre:r.clienteNombre,cant:0,monto:0};m[k].cant++;m[k].monto+=r.monto;});return Object.values(m).sort((a,b)=>b.cant-a.cant);},[reservas]);
   const reservasFiltradas=useMemo(()=>{
     let rs=[...reservas];
     if(filtroC)rs=rs.filter(r=>r.clienteEmail===filtroC||r.clienteTel===filtroC||r.clienteNombre===filtroC);
