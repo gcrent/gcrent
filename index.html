@@ -75,9 +75,9 @@ const genRecs=(base,rep,cant=12)=>{
   if(!rep||rep==="none")return[];
   return Array.from({length:cant},(_,i)=>{
     let f;
-    if(rep==="semanal")f=fmt(addD(base.fecha,(i+1)*7));
-    else if(rep==="quincenal")f=fmt(addD(base.fecha,(i+1)*14));
-    else if(rep==="mensual")f=fmt(addM(base.fecha,i+1));
+    if(rep==="semanal")f=fmt(addD(new Date(base.fecha+"T12:00"),(i+1)*7));
+    else if(rep==="quincenal")f=fmt(addD(new Date(base.fecha+"T12:00"),(i+1)*14));
+    else if(rep==="mensual")f=fmt(addM(new Date(base.fecha+"T12:00"),i+1));
     return{...base,id:genId(),fecha:f,senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id};
   });
 };
