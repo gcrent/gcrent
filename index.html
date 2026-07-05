@@ -123,7 +123,7 @@ const Overlay=({onClose,children,maxW=540})=>(
   </div>
 );
 
-function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,onSubmit,onCancel,submitLabel}){
+function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,onSubmit,onCancel,submitLabel,onSubmitSerie}){
   const promoActiva=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
   const montoPrecargado=useRef(false);
   useEffect(()=>{
@@ -207,7 +207,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
       </div>
       <div style={S.mf}>
         <button onClick={onCancel} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
-        <button onClick={onSubmit} disabled={!!conflicto} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:conflicto?"#ccc":"var(--bronze)",color:"#fff",cursor:conflicto?"not-allowed":"pointer",fontSize:".9rem",fontWeight:600}}>{submitLabel||"Guardar"}</button>
+        <button onClick={onSubmitSerie||onSubmit} disabled={!!conflicto} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:conflicto?"#ccc":"var(--bronze)",color:"#fff",cursor:conflicto?"not-allowed":"pointer",fontSize:".9rem",fontWeight:600}}>{submitLabel||"Guardar"}</button>
       </div>
     </Overlay>
   );
@@ -672,7 +672,7 @@ function App(){
   const [filtroE,setFiltroE]=useState("");
   const [filtroEst,setFiltroEst]=useState("");
   const [filterMes,setFilterMes]=useState("");
-  const [dupFecha,setDupFecha]=useState("");   
+  const [dupFecha,setDupFecha]=useState("");   const [modalSerie,setModalSerie]=useState(null);   
   const [filtroMesMetricas,setFiltroMesMetricas]=useState(mesKey(hoy));
   const [mostrarCal,setMostrarCal]=useState(true);
   const [filtroCal,setFiltroCal]=useState({nombre:"",equipo:""});
@@ -743,17 +743,27 @@ function App(){
     setForm({clienteNombre:r.clienteNombre.split(" ")[0],clienteApellido:r.clienteNombre.split(" ").slice(1).join(" "),clienteEmail:r.clienteEmail||"",clienteTel:r.clienteTel||"",equipoId:String(r.equipoId||1),comboId:r.comboId||"",usarCombo:!!r.comboId,fecha:r.fecha,horaEntrega:r.horaEntrega||"",horaRetiro:r.horaRetiro||"",monto:String(r.monto),senia:String(r.senia),direccion:r.direccion||"",localidad:r.localidad||"",tarifaTransporte:String(r.tarifaTransporte||TARIFA_BASE),repeticion:r.repeticion||"none"});
     setModal("editar");
   };
-  const guardarEdicion=async()=>{
-    if(!form.fecha){showToast("⚠️ Fecha requerida");return;}const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
+  const guardarEdicion=async(alcance="solo")=>{
+    if(!form.fecha){showToast("⚠️ Fecha requerida");return;}
+    const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){showToast("❌ Ese equipo ya tiene una reserva en ese horario ese día");return;}
     const monto=form.monto!==""?+form.monto:editRes.monto;
     const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion};
-    const{error}=await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
-    if(error){showToast("❌ "+error.message);return;}
-    setReservas(rs=>rs.map(x=>x.id===editRes.id?{...updated}:x));
-    setModal(null);setEditRes(null);setForm(FDEF);showToast("✅ Actualizada");
+    if(editRes.serieId&&alcance==="solo"){
+      const{error}=await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
+      if(error){showToast("❌ "+error.message);return;}
+      setReservas(rs=>rs.map(x=>x.id===editRes.id?{...updated}:x));
+    } else if(editRes.serieId&&alcance==="futuros"){
+      const futures=reservas.filter(r=>r.serieId===editRes.serieId&&r.fecha>=editRes.fecha);
+      await Promise.all(futures.map(r=>supa.from("reservas").update(toDb({...updated,id:r.id,fecha:r.fecha})).eq("id",r.id)));
+      setReservas(rs=>rs.map(r=>futures.find(f=>f.id===r.id)?{...updated,id:r.id,fecha:r.fecha}:r));
+    } else {
+      const{error}=await supa.from("reservas").update(toDb(updated)).eq("id",editRes.id);
+      if(error){showToast("❌ "+error.message);return;}
+      setReservas(rs=>rs.map(x=>x.id===editRes.id?{...updated}:x));
+    }
+    setModalSerie(null);setModal(null);setEditRes(null);setForm(FDEF);showToast("✅ Actualizada");
   };
-
   const cambiarEstado=async(id,estado,extra={})=>{const{error}=await supa.from("reservas").update({estado,...extra}).eq("id",id);if(error){showToast("❌ Error");return;}setReservas(rs=>rs.map(r=>r.id===id?{...r,estado,...extra}:r));};
   const notificarWA=(r,tipo)=>{
     const nombreEq=iLabel(r,combos,equipos);
@@ -1441,7 +1451,7 @@ function App(){
       </main>
 
       {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={null} tarifas={tarifas} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
-      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={editRes.id} tarifas={tarifas} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios"/>}
+      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={editRes.id} tarifas={tarifas} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios" onSubmitSerie={editRes?.serieId?()=>setModalSerie("editar"):null}/>}
 
       {modal==="equipo"&&(
         <Overlay onClose={()=>{setModal(null);setEditEquipo(null);}} maxW={420}>
@@ -1473,19 +1483,44 @@ function App(){
         </Overlay>
       )}
 
+      {modalSerie==="editar"&&(
+        <Overlay onClose={()=>setModalSerie(null)} maxW={400}>
+          <div style={S.mh}>📅 Editar evento repetido <CloseBtn onClose={()=>setModalSerie(null)}/></div>
+          <div style={{padding:"1.2rem"}}>
+            <div style={{background:"var(--light)",borderRadius:10,padding:".8rem 1rem",marginBottom:"1rem",fontSize:".88rem",color:"var(--mid)"}}>Esta reserva es parte de una serie repetida. ¿Qué querés modificar?</div>
+            <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
+              {btn("📌 Solo este evento",()=>guardarEdicion("solo"),"var(--bronze)")}
+              {btn("📅 Este y todos los eventos futuros",()=>guardarEdicion("futuros"),"var(--blue)")}
+            </div>
+          </div>
+          <div style={S.mf}>
+            <button onClick={()=>setModalSerie(null)} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
+          </div>
+        </Overlay>
       {modal==="cancelar"&&editRes&&(
         <Overlay onClose={()=>setModal(null)} maxW={400}>
           <div style={{...S.mh,background:"var(--red)"}}>❌ Cancelar reserva <CloseBtn onClose={()=>setModal(null)}/></div>
           <div style={{padding:"1.2rem"}}>
             <div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:"1rem"}}>Esta acción no se puede deshacer.</div>
+            {editRes.serieId&&(
+              <div style={{background:"#FEF3C7",border:"1.5px solid var(--gold)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#92400E",marginBottom:"1rem"}}>Esta reserva es parte de una serie. ¿Qué querés cancelar?</div>
+            )}
             <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
               {btn("❌ Cancelar totalmente",()=>cancelarReserva(editRes.id,"total"),"var(--red)")}
               {btn("🚚 Cancelar y cobrar transporte",()=>cancelarReserva(editRes.id,"transporte"),"var(--bronze)")}
+              {editRes.serieId&&btn("❌ Cancelar este y todos los futuros",async()=>{
+                const futures=reservas.filter(r=>r.serieId===editRes.serieId&&r.fecha>=editRes.fecha);
+                await Promise.all(futures.map(r=>supa.from("reservas").update({estado:"cancelado",cancel_tipo:"total"}).eq("id",r.id)));
+                setReservas(rs=>rs.map(r=>futures.find(f=>f.id===r.id)?{...r,estado:"cancelado",cancelTipo:"total"}:r));
+                setModal(null);showToast("❌ Serie cancelada");
+              },"#7F1D1D")}
             </div>
+          </div>
+          <div style={S.mf}>
+            <button onClick={()=>setModal(null)} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Volver</button>
           </div>
         </Overlay>
       )}
-
       {modal==="promo"&&(
         <Overlay onClose={()=>setModal(null)} maxW={420}>
           <div style={S.mh}>🎁 Nueva Promoción <CloseBtn onClose={()=>setModal(null)}/></div>
