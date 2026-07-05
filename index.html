@@ -773,6 +773,12 @@ function App(){
     if(tel)window.open("https://wa.me/"+tel+"?text="+msg,"_blank");
     else showToast("⚠️ El cliente no tiene teléfono cargado");
   };
+  const cancelarSerie=async(r)=>{
+    const futures=reservas.filter(x=>x.serieId===r.serieId&&x.fecha>=r.fecha);
+    await Promise.all(futures.map(x=>supa.from("reservas").update({estado:"cancelado",cancel_tipo:"total"}).eq("id",x.id)));
+    setReservas(rs=>rs.map(x=>futures.find(f=>f.id===x.id)?{...x,estado:"cancelado",cancelTipo:"total"}:x));
+    setModalSerie(null);setModal(null);showToast("❌ Serie cancelada");
+  };
   const aceptarPendiente=async(id,r)=>{await cambiarEstado(id,"aceptada");showToast("✅ Reserva aceptada");};
   const rechazarPendiente=async(id,r)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:"rechazada"});showToast("❌ Solicitud rechazada");};
   const cancelarReserva=async(id,tipo)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:tipo});setModal(null);showToast("❌ Cancelada");};
@@ -1512,12 +1518,7 @@ function App(){
             <div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:"1rem"}}>¿Qué eventos querés cancelar?</div>
             <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
               {btn("📌 Solo este evento",()=>cancelarReserva(editRes.id,"total"),"var(--red)")}
-              {btn("📅 Este y todos los futuros",async()=>{
-                const futures=reservas.filter(r=>r.serieId===editRes.serieId&&r.fecha>=editRes.fecha);
-                await Promise.all(futures.map(r=>supa.from("reservas").update({estado:"cancelado",cancel_tipo:"total"}).eq("id",r.id)));
-                setReservas(rs=>rs.map(r=>futures.find(f=>f.id===r.id)?{...r,estado:"cancelado",cancelTipo:"total"}:r));
-                setModalSerie(null);setModal(null);showToast("❌ Serie cancelada");
-              },"#7F1D1D")}
+              {btn("📅 Este y todos los futuros",()=>cancelarSerie(editRes),"#7F1D1D")}
             </div>
           </div>
           <div style={S.mf}>
