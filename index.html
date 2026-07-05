@@ -697,7 +697,7 @@ function App(){
   const senias=reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===filtroMesMetricas).reduce((a,r)=>a+r.senia,0);
   const hace14=fmt(addD(hoy,-14));
   const equiposOciosos=equipos.filter(e=>!reservas.some(r=>r.equipoId===e.id&&r.fecha>=hace14&&r.estado!=="cancelado"));
-  const rankingClientes=useMemo(()=>{const m={};reservas.filter(r=>r.estado!=="cancelado").forEach(r=>{const k=r.clienteTel||r.clienteEmail||r.clienteNombre;if(!m[k])m[k]={nombre:r.clienteNombre,cant:0,monto:0};m[k].cant++;m[k].monto+=r.monto;});return Object.values(m).sort((a,b)=>b.cant-a.cant);},[reservas]);
+  const rankingClientes=useMemo(()=>{const m={};reservas.filter(r=>r.estado!=="cancelado"&&r.fecha<=fmt(hoy)).forEach(r=>{const k=r.clienteTel||r.clienteEmail||r.clienteNombre;if(!m[k])m[k]={nombre:r.clienteNombre,cant:0,monto:0};m[k].cant++;m[k].monto+=r.monto;});return Object.values(m).sort((a,b)=>b.cant-a.cant);},[reservas]);
   const reservasFiltradas=useMemo(()=>{let rs=[...reservas];if(filtroC)rs=rs.filter(r=>r.clienteEmail===filtroC||r.clienteTel===filtroC||r.clienteNombre===filtroC);if(filtroE)rs=rs.filter(r=>r.equipoId===+filtroE);if(filtroEst)rs=rs.filter(r=>r.estado===filtroEst);if(filterMes)rs=rs.filter(r=>mesKey(r.fecha)===filterMes);return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));},[reservas,filtroC,filtroE,filtroEst,filterMes]);
   const reservasOrdenadas=useMemo(()=>{
     const fmtHoy=fmt(hoy);
