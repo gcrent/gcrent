@@ -707,7 +707,7 @@ function App(){
     return[...pend,...futuras,...pasadas];
   },[reservas]);
   const lunesSem=addD(getLunes(hoy),semOff*7),finSem=addD(lunesSem,6);
-  const resSem=reservas.filter(r=>{const d=new Date(r.fecha+"T12:00");const finAjustado=new Date(finSem);finAjustado.setHours(23,59,59);return d>=lunesSem&&d<=finAjustado&&r.estado!=="cancelado";});
+  const resSem=reservas.filter(r=>r.fecha>=fmt(lunesSem)&&r.fecha<=fmt(finSem)&&r.estado!=="cancelado");
   const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte||TARIFA_BASE),0);
   const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
   const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);
@@ -1188,7 +1188,7 @@ function App(){
           const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,6);
           const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):addD(hoy,-365);
           const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):hoy;
-          const enPeriodo=r=>{const d=new Date(r.fecha+"T12:00");const finAjustado=new Date(finPeriodo);finAjustado.setHours(23,59,59);return d>=inicioPeriodo&&d<=finAjustado;};
+          const enPeriodo=r=>r.fecha>=fmt(inicioPeriodo)&&r.fecha<=fmt(finPeriodo);
           const pend=reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
           const enEst=reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
           const ret=reservas.filter(r=>r.estado==="completado"&&enPeriodo(r));
