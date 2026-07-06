@@ -31,22 +31,22 @@ const {useState,useEffect,useMemo,useCallback,useRef}=React;
 
 const EQUIPOS_BASE=[
   {id:1,nombre:"HIFU 12D Promax",emoji:"🎯",desc:"Lifting facial.",precio:250000},
-  {id:2,nombre:"Depi Láser Soprano + Hollywood Peel",emoji:"💡",desc:"Depilación + peeling.",precio:100000},
-  {id:3,nombre:"Hollywood Peel y Tatuajes",emoji:"✨",desc:"Peeling y remoción.",precio:80000},
-  {id:4,nombre:"Láser ADSS",emoji:"🔆",desc:"Láser multifunción.",precio:65000},
-  {id:5,nombre:"Láser 2 Soprano",emoji:"💡",desc:"Depilación Soprano.",precio:65000},
-  {id:6,nombre:"Láser 3 Soprano",emoji:"💡",desc:"Depilación Soprano.",precio:65000},
-  {id:7,nombre:"Láser 4 Soprano",emoji:"💡",desc:"Depilación Soprano.",precio:65000},
-  {id:8,nombre:"Mio Up Quad",emoji:"⚡",desc:"Electroestimulación Quad.",precio:50000},
-  {id:9,nombre:"Mio Up",emoji:"⚡",desc:"Electroestimulación.",precio:50000},
+  {id:2,nombre:"Depi Laser Soprano + Hollywood Peel",emoji:"💡",desc:"Depilacion + peeling.",precio:100000},
+  {id:3,nombre:"Hollywood Peel y Tatuajes",emoji:"✨",desc:"Peeling y remocion.",precio:80000},
+  {id:4,nombre:"Laser ADSS",emoji:"🔆",desc:"Laser multifuncion.",precio:65000},
+  {id:5,nombre:"Laser 2 Soprano",emoji:"💡",desc:"Depilacion Soprano.",precio:65000},
+  {id:6,nombre:"Laser 3 Soprano",emoji:"💡",desc:"Depilacion Soprano.",precio:65000},
+  {id:7,nombre:"Laser 4 Soprano",emoji:"💡",desc:"Depilacion Soprano.",precio:65000},
+  {id:8,nombre:"Mio Up Quad",emoji:"⚡",desc:"Electroestimulacion Quad.",precio:50000},
+  {id:9,nombre:"Mio Up",emoji:"⚡",desc:"Electroestimulacion.",precio:50000},
   {id:10,nombre:"Criofraxis",emoji:"❄️",desc:"Crioterapia fraccionada.",precio:50000},
-  {id:11,nombre:"Teslagen Dúo Burst",emoji:"🔊",desc:"Ultrasonido dual.",precio:40000},
+  {id:11,nombre:"Teslagen Duo Burst",emoji:"🔊",desc:"Ultrasonido dual.",precio:40000},
   {id:12,nombre:"Criolipólisis Plana Sveltia 4 cab.",emoji:"❄️",desc:"4 cabezales.",precio:45000},
   {id:13,nombre:"Velamax",emoji:"🌀",desc:"Vacuumterapia.",precio:32000},
   {id:14,nombre:"Vela 2 Plus",emoji:"🌀",desc:"Vacuumterapia Plus.",precio:32000},
   {id:15,nombre:"Velaslim Plus",emoji:"🌀",desc:"Velaslim.",precio:32000},
   {id:16,nombre:"Vela Velvet Max",emoji:"🌀",desc:"Velvet Max.",precio:32000},
-  {id:17,nombre:"Onda de Choque",emoji:"💥",desc:"Ondas terapéuticas.",precio:30000},
+  {id:17,nombre:"Onda de Choque",emoji:"💥",desc:"Ondas terapeuticas.",precio:30000},
 ];
 const EQ_COLORS=["#E07B54","#7B9E87","#5B8DB8","#C4A35A","#B56576","#6B8FAB","#8B7355","#7E9B6E","#9B6B8A","#5B8A8A","#C47C5A","#7B6B9E","#8A6B5B","#6B9B7E","#9E6B6B","#7A5B8A","#5B7A6B","#A07050","#607090","#809060"];
 const eqColor=id=>EQ_COLORS[(id-1)%EQ_COLORS.length]||"#888";
@@ -65,7 +65,7 @@ const fmtFull=d=>{if(!d)return"";const[y,m,dia]=d.split("-");const ms=["ene","fe
 const addD=(d,n)=>{const r=new Date(d);r.setDate(r.getDate()+n);return r;};
 const addM=(d,n)=>{const r=new Date(d);r.setMonth(r.getMonth()+n);return r;};
 const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sab"];
 const getLunes=d=>{const r=new Date(d);r.setDate(r.getDate()-(r.getDay()||7)+1);r.setHours(0,0,0,0);return r;};
 const semLabel=l=>{const d=addD(l,6);return`${l.getDate()} ${MESES[l.getMonth()].slice(0,3)} - ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)}`;};
 const mesKey=d=>`${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}`;
@@ -82,7 +82,7 @@ const genRecs=(base,rep,cant=12)=>{
   });
 };
 const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
-const iLabel=(r,combos,equipos)=>{if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`📦 ${c.nombre}`:"Combo";}const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";};
+const iLabel=(r,combos,equipos)=>{if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`${c.nombre}`:"Combo";}const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";};
 const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte||TARIFA_BASE,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null});
 const fromDb=r=>({id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo});
 const cToDb=c=>({id:c.id,nombre:c.nombre,descripcion:c.desc||"",precio:c.precio,equipo_ids:c.equipoIds});
@@ -169,7 +169,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
         <div style={S.fg}><label style={S.lbl}>Email</label><input type="email" value={form.clienteEmail} onChange={e=>fv("clienteEmail",e.target.value)} placeholder="mail@mail.com" style={S.inp}/></div>
         <div style={S.fg}><label style={{display:"flex",alignItems:"center",gap:".4rem",fontSize:".95rem",color:"var(--dark)",cursor:"pointer"}}><input type="checkbox" checked={form.usarCombo} onChange={e=>fv("usarCombo",e.target.checked)}/> Reservar un combo</label></div>
         {form.usarCombo
-          ?<div style={S.fg}><label style={S.lbl}>Combo</label><select value={form.comboId} onChange={e=>fv("comboId",e.target.value)} style={S.inp}><option value="">Seleccioná combo</option>{combos.map(c=><option key={c.id} value={c.id}>📦 {c.nombre} — ${c.precio.toLocaleString()}</option>)}</select></div>
+          ?<div style={S.fg}><label style={S.lbl}>Combo</label><select value={form.comboId} onChange={e=>fv("comboId",e.target.value)} style={S.inp}><option value="">Seleccioná combo</option>{combos.map(c=><option key={c.id} value={c.id}>{c.nombre} — ${c.precio.toLocaleString()}</option>)}</select></div>
           :<div style={S.fg}><label style={S.lbl}>Equipo</label><select value={form.equipoId} onChange={e=>fv("equipoId",e.target.value)} style={S.inp}>{equipos.map(e=>{const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);return<option key={e.id} value={e.id}>{e.emoji} {e.nombre} — ${p?Math.round(e.precio*(1-p.descuento/100)).toLocaleString():e.precio.toLocaleString()}{p?` (-${p.descuento}% PROMO)`:""}</option>;})}</select></div>
         }
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
@@ -246,31 +246,23 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
     else{const{error}=await supa.from("liquidacion").insert(payload);if(error){showToast("Error: "+error.message);setGuardando(false);return;}}
     setGuardando(false);showToast("Guardado");
   };
-  const exportarExcelLiq=()=>{
-    const wb=window.XLSX.utils.book_new();
-    const MESES_N=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    const[anio,mes]=mesLiq.split("-");
-    const nombreMes=MESES_N[+mes-1]+" "+anio;
-    const rows=[[nombreMes],[],["PERIODOS","","",""],["Desde","Hasta","Socio","Ingresos"],...datosLiq.periodos.map(p=>([p.desde,p.hasta,p.socio,reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0)])),[], ["GASTOS FER","","GASTOS JC",""],["Concepto","Monto","Concepto","Monto"],...datosLiq.gastos_fer.map((g,i)=>([g.concepto,+g.monto||0,datosLiq.gastos_jc[i]?.concepto||"",+datosLiq.gastos_jc[i]?.monto||0])),[], ["Ingresos Fer",ingresosSocio("Fer"),"Ingresos JC",ingresosSocio("JC")],["Gastos Fer",-totalGastos("gastos_fer"),"Gastos JC",-totalGastos("gastos_jc")],["Neto Fer",netoFer,"Neto JC",netoJC],[],[netoFer>netoJC?"Fer debe transferir a JC":"JC debe transferir a Fer",diff]];
-    const ws=window.XLSX.utils.aoa_to_sheet(rows);
-    window.XLSX.utils.book_append_sheet(wb,ws,"Liquidacion");
-    window.XLSX.writeFile(wb,"Liquidacion_"+mesLiq+".xlsx");
-    showToast("Excel descargado");
-  };
-  const ingresosSocio=(socio)=>{
-    return datosLiq.periodos.filter(p=>p.socio===socio&&p.desde&&p.hasta).reduce((acc,p)=>{
-      return acc+reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
-    },0);
-  };
-  const ingresosPeriodo=(p)=>{
-    if(!p.desde||!p.hasta)return 0;
-    return reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);
-  };
+  const ingresosSocio=(socio)=>datosLiq.periodos.filter(p=>p.socio===socio&&p.desde&&p.hasta).reduce((acc,p)=>acc+reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0),0);
+  const ingresosPeriodo=(p)=>{if(!p.desde||!p.hasta)return 0;return reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);};
   const totalGastos=key=>datosLiq[key].reduce((a,g)=>a+(+g.monto||0),0);
   const netoFer=ingresosSocio("Fer")-totalGastos("gastos_fer");
   const netoJC=ingresosSocio("JC")-totalGastos("gastos_jc");
   const diff=Math.round(Math.abs(netoFer-netoJC)/2);
   const deudor=netoFer>netoJC?"Fer debe transferir a JC":"JC debe transferir a Fer";
+  const exportarExcelLiq=()=>{
+    const wb=window.XLSX.utils.book_new();
+    const MESES_N=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const[anio,mes]=mesLiq.split("-");
+    const rows=[[MESES_N[+mes-1]+" "+anio],[],["PERIODOS","","",""],["Desde","Hasta","Socio","Ingresos"],...datosLiq.periodos.map(p=>([p.desde,p.hasta,p.socio,ingresosPeriodo(p)])),[], ["GASTOS FER","","GASTOS JC",""],["Concepto","Monto","Concepto","Monto"],...datosLiq.gastos_fer.map((g,i)=>([g.concepto,+g.monto||0,datosLiq.gastos_jc[i]?.concepto||"",+datosLiq.gastos_jc[i]?.monto||0])),[], ["Ingresos Fer",ingresosSocio("Fer"),"Ingresos JC",ingresosSocio("JC")],["Gastos Fer",-totalGastos("gastos_fer"),"Gastos JC",-totalGastos("gastos_jc")],["Neto Fer",netoFer,"Neto JC",netoJC],[],[netoFer>netoJC?"Fer debe transferir a JC":"JC debe transferir a Fer",diff]];
+    const ws=window.XLSX.utils.aoa_to_sheet(rows);
+    window.XLSX.utils.book_append_sheet(wb,ws,"Liquidacion");
+    window.XLSX.writeFile(wb,"Liquidacion_"+mesLiq+".xlsx");
+    showToast("Excel descargado");
+  };
   return(<>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:".5rem"}}>
       <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",margin:0}}>Liquidacion</h2>
@@ -365,8 +357,6 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
   const [usarCombo,setUsarCombo]=useState(false);
   const [enviando,setEnviando]=useState(false);
   const [pf,setPf]=useState({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});
-  const [filtroEquipo,setFiltroEquipo]=useState(null);
-  const [filtroEsCombo,setFiltroEsCombo]=useState(false);
   const upd=(k,v)=>setPf(f=>({...f,[k]:v}));
   const fmtHoy=fmt(hoy);
   const diasEnMes=()=>{
@@ -381,32 +371,22 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
   const precio=useMemo(()=>{if(usarCombo&&selCombo)return selCombo.precio;if(!usarCombo&&selEquipo){const p=promos.find(pr=>pr.activa&&pr.equipoId===selEquipo.id);return p?Math.round(selEquipo.precio*(1-p.descuento/100)):selEquipo.precio;}return 0;},[selEquipo,selCombo,usarCombo,promos]);
   const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
   const dotsEnFecha=date=>{
-    if(filtroEquipo){
-      if(filtroEsCombo){const c=combos.find(x=>x.id===filtroEquipo);if(!c)return"libre";return c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,date))?"libre":"ocupado";}
-      return equipoLibreEnFecha(reservas,filtroEquipo,date)?"libre":"ocupado";
-    }
     const ocp=reservas.filter(r=>r.fecha===date&&r.estado!=="cancelado").length;
     if(ocp===0)return"libre";if(ocp<equipos.length)return"parcial";return"ocupado";
   };
   const selDia=d=>{
     if(d.other||d.date<fmtHoy)return;
-    if(dotsEnFecha(d.date)==="ocupado")return;
-    setSelDay(d.date);
-    if(filtroEquipo){
-      if(filtroEsCombo){const c=combos.find(x=>x.id===filtroEquipo);if(c){setSelCombo(c);setUsarCombo(true);setSelEquipo(null);setPaso(3);return;}}
-      else{const e=equipos.find(x=>x.id===filtroEquipo);if(e){setSelEquipo(e);setUsarCombo(false);setSelCombo(null);setPaso(3);return;}}
-    }
-    setSelEquipo(null);setSelCombo(null);setUsarCombo(false);setPaso(2);
+    setSelDay(d.date);setSelEquipo(null);setSelCombo(null);setUsarCombo(false);setPaso(2);
   };
   const enviar=async()=>{
-    if(!pf.nombre||!pf.tel||!pf.localidad){alert("Completá nombre, teléfono y localidad");return;}
+    if(!pf.nombre||!pf.tel||!pf.localidad){alert("Completa nombre, telefono y localidad");return;}
     if(+pf.senia>0&&+pf.senia<5000){alert("La seña mínima es $5.000");return;}
     setEnviando(true);
     const nueva={id:genId(),clienteNombre:pf.apellido?pf.nombre+" "+pf.apellido:pf.nombre,clienteEmail:"",clienteTel:pf.tel,equipoId:usarCombo?null:(selEquipo?.id||null),comboId:usarCombo?(selCombo?.id||null):null,fecha:selDay,horaEntrega:"",horaRetiro:"",estado:"pendiente",monto:precio,senia:+pf.senia||0,direccion:pf.direccion,localidad:pf.localidad,tarifaTransporte:tarifa,repeticion:"none",esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){alert("Error: "+error.message);setEnviando(false);return;}
-    const nombreEq=usarCombo?("Combo "+selCombo.nombre):(selEquipo.nombre);
-    const msg=encodeURIComponent("Nueva solicitud de reserva\n\n"+( pf.apellido?pf.nombre+" "+pf.apellido:pf.nombre)+"\n"+pf.tel+"\n"+fmtFull(selDay)+"\n"+nombreEq+"\n"+pf.localidad+(pf.direccion?" - "+pf.direccion:"")+"\n$"+precio.toLocaleString()+(+pf.senia>=5000?"\nSena: $"+(+pf.senia).toLocaleString():"")+"\n\nPendiente de confirmacion.");
+    const nombreEq=usarCombo?selCombo.nombre:(selEquipo.nombre);
+    const msg=encodeURIComponent("Nueva solicitud de reserva\n\n"+(pf.apellido?pf.nombre+" "+pf.apellido:pf.nombre)+"\n"+pf.tel+"\n"+fmtFull(selDay)+"\n"+nombreEq+"\n"+pf.localidad+(pf.direccion?" - "+pf.direccion:"")+"\n$"+precio.toLocaleString()+(+pf.senia>=5000?"\nSeña: $"+(+pf.senia).toLocaleString():"")+"\n\nPendiente de confirmacion.");
     window.open("https://wa.me/"+WA_NUM+"?text="+msg,"_blank");
     setPaso(4);setEnviando(false);
   };
@@ -417,9 +397,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.8rem",color:"var(--bronze)",marginBottom:".5rem"}}>Solicitud enviada</div>
         <div style={{fontSize:".95rem",color:"var(--mid)",marginBottom:"1.5rem",lineHeight:1.6}}>Tu pedido quedo registrado. Te confirmamos por WhatsApp a la brevedad.</div>
         <div style={{background:"var(--light)",borderRadius:12,padding:"1rem",marginBottom:"1.5rem",fontSize:".9rem",textAlign:"left"}}>
-          <div style={{fontWeight:700,marginBottom:".4rem"}}>{usarCombo?"Combo "+selCombo.nombre:selEquipo.nombre}</div>
-          <div>{fmtFull(selDay)}</div>
-          <div>{pf.localidad}</div>
+          <div style={{fontWeight:700,marginBottom:".4rem"}}>{usarCombo?selCombo.nombre:selEquipo.nombre}</div>
+          <div>{fmtFull(selDay)}</div><div>{pf.localidad}</div>
           <div style={{fontWeight:700,color:"var(--bronze)",marginTop:".4rem"}}>${precio.toLocaleString()}</div>
         </div>
         <button onClick={()=>{setPaso(1);setSelDay(null);setSelEquipo(null);setSelCombo(null);setPf({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});}} style={{width:"100%",padding:".75rem",borderRadius:12,border:"none",background:"var(--bronze)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:"1rem",fontWeight:700,cursor:"pointer",marginBottom:".6rem"}}>Hacer otra solicitud</button>
@@ -446,10 +425,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
             <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--sand)"}}>
               {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
               {diasEnMes().map((c,i)=>{
-                const est=dotsEnFecha(c.date);
-                const esPasado=c.date<fmtHoy;
-                const isToday=c.date===fmtHoy;
-                const isSel=c.date===selDay;
+                const est=dotsEnFecha(c.date);const esPasado=c.date<fmtHoy;const isToday=c.date===fmtHoy;const isSel=c.date===selDay;
                 return(
                   <div key={i} onClick={()=>selDia(c)} style={{background:isSel?"rgba(176,125,78,.2)":isToday?"rgba(176,125,78,.1)":"#fff",minHeight:64,padding:".3rem .28rem",cursor:(esPasado||c.other)?"default":"pointer",opacity:c.other||esPasado?.35:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
                     <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday||isSel?"var(--bronze)":"transparent",color:isToday||isSel?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
@@ -546,6 +522,8 @@ function App(){
   const [filtroCal,setFiltroCal]=useState({nombre:"",equipo:""});
   const [filtroTransp,setFiltroTransp]=useState("pendiente");
   const [periodoTransp,setPeriodoTransp]=useState("semana");
+  const [fechaDesdeTransp,setFechaDesdeTransp]=useState("");
+  const [fechaHastaTransp,setFechaHastaTransp]=useState("");
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
@@ -597,8 +575,7 @@ function App(){
     const todas=[base,...genRecs(base,form.repeticion,12)];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
-    setReservas(r=>[...r,...todas]);
-    setModal(null);setForm(FDEF);
+    setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
     showToast(`Reserva guardada${todas.length>1?` + ${todas.length-1} recurrencias`:""}`);
   };
 
@@ -714,8 +691,7 @@ function App(){
   const hayFiltroCal=!!(filtroCal.nombre||filtroCal.equipo);
   const resDiaFiltrada=useMemo(()=>{
     if(hayFiltroCal){
-      const fmtHoy2=fmt(hoy);
-      const finRango=fmt(addD(hoy,365));
+      const fmtHoy2=fmt(hoy);const finRango=fmt(addD(hoy,365));
       let rs=reservas.filter(r=>r.fecha>=fmtHoy2&&r.fecha<=finRango&&r.estado!=="cancelado");
       if(filtroCal.nombre)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroCal.nombre.toLowerCase()));
       if(filtroCal.equipo)rs=rs.filter(r=>r.equipoId===+filtroCal.equipo||r.comboId===filtroCal.equipo);
@@ -737,7 +713,6 @@ function App(){
     window.XLSX.writeFile(wb,`GCRent_Backup_${fmt(hoy).replace(/-/g,"")}.xlsx`);
     showToast("Backup descargado");
   };
-
   const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
     const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Localidad","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.localidad||"",r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||TARIFA_BASE,estadoLabel(r.estado)])]);
@@ -845,10 +820,9 @@ function App(){
         <button onClick={()=>setRol("publico")} style={{display:"block",width:"100%",padding:"1.1rem 1.2rem",marginBottom:"1.2rem",borderRadius:14,border:"none",background:"var(--bronze)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:"#fff",textAlign:"center",boxShadow:"0 4px 20px rgba(176,125,78,.35)"}}>Ver disponibilidad y reservar</button>
         <div style={{borderTop:"1px solid var(--sand)",paddingTop:"1.2rem",marginBottom:".6rem"}}>
           <div style={{fontSize:".72rem",color:"var(--mid)",textAlign:"center",marginBottom:".8rem",textTransform:"uppercase",letterSpacing:".08em"}}>Acceso personal</div>
-          {!loginStep&&[{key:"admin",label:"Administradora",icon:"A",desc:"Gestión completa"},{key:"transportista",label:"Transportista",icon:"T",desc:"Entregas y cobros"},{key:"cliente",label:"Cliente",icon:"C",desc:"Mis reservas"}].map(r=>(
+          {!loginStep&&[{key:"admin",label:"Administradora",desc:"Gestión completa"},{key:"transportista",label:"Transportista",desc:"Entregas y cobros"},{key:"cliente",label:"Cliente",desc:"Mis reservas"}].map(r=>(
             <button key={r.key} onClick={()=>intentarLogin(r.key)} style={{display:"block",width:"100%",padding:".8rem 1rem",marginBottom:".5rem",borderRadius:12,border:"1.5px solid var(--sand)",background:"var(--cream)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",fontWeight:600,color:"var(--dark)",textAlign:"left"}}>
-              {r.label}
-              <span style={{display:"block",fontSize:".72rem",fontWeight:400,color:"var(--mid)",marginTop:".05rem"}}>{r.desc}</span>
+              {r.label}<span style={{display:"block",fontSize:".72rem",fontWeight:400,color:"var(--mid)",marginTop:".05rem"}}>{r.desc}</span>
             </button>
           ))}
         </div>
@@ -1075,10 +1049,9 @@ function App(){
             const resActual=reservas.filter(r=>mesKey(r.fecha)===keyActual&&r.estado!=="cancelado");
             const resPrev=reservas.filter(r=>mesKey(r.fecha)===keyPrev&&r.estado!=="cancelado");
             const resNext=reservas.filter(r=>mesKey(r.fecha)===keyNext&&r.estado!=="cancelado");
-            const montoActual=resActual.reduce((a,r)=>a+r.monto,0);
+            const forecast=resActual.reduce((a,r)=>a+r.monto,0);
             const montoPrev=resPrev.reduce((a,r)=>a+r.monto,0);
             const montoNext=resNext.reduce((a,r)=>a+r.monto,0);
-            const forecast=montoActual;
             const pct=montoPrev>0?Math.round((forecast/montoPrev-1)*100):null;
             const mejor=pct!==null&&pct>=0;
             return(
@@ -1101,7 +1074,7 @@ function App(){
             );
           })()}
           <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
-            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Ranking de clientes (facturación histórica)</div>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Ranking de clientes (facturación histórica, mayor a menor)</div>
             <div style={{padding:"1rem"}}>
               {rankingClientes.length===0?<div style={{textAlign:"center",color:"var(--mid)"}}>Sin datos.</div>
               :rankingClientes.map((c,i)=>(
@@ -1169,7 +1142,7 @@ function App(){
             {btn("Excel",exportarExcel,"var(--green)")}
           </div>
           <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:".9rem 1rem",marginBottom:"1rem",display:"flex",gap:".6rem",alignItems:"flex-end",flexWrap:"wrap"}}>
-            {[{label:"Cliente",value:filtroC,onChange:e=>setFiltroC(e.target.value),options:[{value:"",label:"Todas"},...clientes.map(([k,nombre])=>({value:k,label:nombre}))]},{label:"Equipo",value:filtroE,onChange:e=>setFiltroE(e.target.value),options:[{value:"",label:"Todos"},...equipos.map(e=>({value:e.id,label:`${e.nombre}`}))]},{label:"Estado",value:filtroEst,onChange:e=>setFiltroEst(e.target.value),options:[{value:"",label:"Todos"},{value:"pendiente",label:"Pendiente"},{value:"aceptada",label:"Aceptada"},{value:"sena",label:"Con seña"},{value:"activo",label:"Activo"},{value:"completado",label:"Completado"},{value:"cancelado",label:"Cancelado"}]}].map((f,i)=>(
+            {[{label:"Cliente",value:filtroC,onChange:e=>setFiltroC(e.target.value),options:[{value:"",label:"Todas"},...clientes.map(([k,nombre])=>({value:k,label:nombre}))]},{label:"Equipo",value:filtroE,onChange:e=>setFiltroE(e.target.value),options:[{value:"",label:"Todos"},...equipos.map(e=>({value:e.id,label:e.nombre}))]},{label:"Estado",value:filtroEst,onChange:e=>setFiltroEst(e.target.value),options:[{value:"",label:"Todos"},{value:"pendiente",label:"Pendiente"},{value:"aceptada",label:"Aceptada"},{value:"sena",label:"Con seña"},{value:"activo",label:"Activo"},{value:"completado",label:"Completado"},{value:"cancelado",label:"Cancelado"}]}].map((f,i)=>(
               <div key={i} style={{flex:1,minWidth:140}}>
                 <label style={S.lbl}>{f.label}</label>
                 <select value={f.value} onChange={f.onChange} style={S.inp}>{f.options.map((o,j)=><option key={j} value={o.value}>{o.label}</option>)}</select>
@@ -1185,9 +1158,9 @@ function App(){
         </>)}
 
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
-          const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="custom"?new Date(fechaDesdeTransp+"T12:00"):addD(hoy,-365);
-          const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):periodoTransp==="custom"?new Date(fechaHastaTransp+"T12:00"):hoy;
-          const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):hoy;
+          const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,6);
+          const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="custom"&&fechaDesdeTransp?new Date(fechaDesdeTransp+"T12:00"):addD(hoy,-365);
+          const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):periodoTransp==="custom"&&fechaHastaTransp?new Date(fechaHastaTransp+"T12:00"):hoy;
           const enPeriodo=r=>r.fecha>=fmt(inicioPeriodo)&&r.fecha<=fmt(finPeriodo);
           const pend=reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
           const enEst=reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
@@ -1196,19 +1169,18 @@ function App(){
           const mostrar=filtroTransp==="pendiente"?pend:filtroTransp==="entregado"?enEst:ret;
           return(<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>Mis Entregas</h2>
-            <div style={{display:"flex",gap:".5rem",marginBottom:".8rem",flexWrap:"wrap"}}>
-              {[{k:"semana",l:"Esta semana"},{k:"mes",l:"Este mes"},{k:"2meses",l:"2 meses"},{k:"anio",l:"Último año"}].map(p=>(
-                <button key={p.k} onClick={()=>setPeriodoTransp(p.k)} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp===p.k?"var(--dark)":"var(--sand)",color:periodoTransp===p.k?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>{p.l}{periodoTransp===p.k?" ok":""}</button>
+            <div style={{display:"flex",gap:".5rem",marginBottom:".4rem",flexWrap:"wrap"}}>
+              {[{k:"semana",l:"Esta semana"},{k:"mes",l:"Este mes"},{k:"2meses",l:"2 meses"},{k:"anio",l:"Ultimo año"},{k:"custom",l:"Personalizado"}].map(p=>(
+                <button key={p.k} onClick={()=>setPeriodoTransp(p.k)} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp===p.k?"var(--dark)":"var(--sand)",color:periodoTransp===p.k?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>{p.l}</button>
               ))}
-              <button onClick={()=>setPeriodoTransp("custom")} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp==="custom"?"var(--dark)":"var(--sand)",color:periodoTransp==="custom"?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>Personalizado</button>
-              {periodoTransp==="custom"&&(
-              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap",marginTop:".4rem"}}>
+            </div>
+            {periodoTransp==="custom"&&(
+              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap",marginBottom:".8rem"}}>
                 <input type="date" value={fechaDesdeTransp} onChange={e=>setFechaDesdeTransp(e.target.value)} style={{padding:".4rem .6rem",borderRadius:8,border:"1.5px solid var(--sand)",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",background:"var(--light)"}}/>
                 <span style={{color:"var(--mid)",fontSize:".85rem"}}>al</span>
                 <input type="date" value={fechaHastaTransp} onChange={e=>setFechaHastaTransp(e.target.value)} style={{padding:".4rem .6rem",borderRadius:8,border:"1.5px solid var(--sand)",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",background:"var(--light)"}}/>
               </div>
             )}
-            </div>
             <div style={{background:"linear-gradient(135deg,var(--blue),#1a4a6e)",color:"#fff",borderRadius:14,padding:"1rem 1.3rem",marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".5rem"}}>
               <div>
                 <div style={{fontSize:".75rem",opacity:.8,textTransform:"uppercase",letterSpacing:".06em"}}>Total estimado a cobrar</div>
@@ -1363,7 +1335,7 @@ function App(){
         <Overlay onClose={()=>setModalSerie(null)} maxW={400}>
           <div style={S.mh}>Editar evento repetido <CloseBtn onClose={()=>setModalSerie(null)}/></div>
           <div style={{padding:"1.2rem"}}>
-            <div style={{background:"var(--light)",borderRadius:10,padding:".8rem 1rem",marginBottom:"1rem",fontSize:".88rem",color:"var(--mid)"}}>Esta reserva es parte de una serie repetida. Qué querés modificar?</div>
+            <div style={{background:"var(--light)",borderRadius:10,padding:".8rem 1rem",marginBottom:"1rem",fontSize:".88rem",color:"var(--mid)"}}>Esta reserva es parte de una serie. Que querés modificar?</div>
             <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
               {btn("Solo este evento",()=>guardarEdicion("solo"),"var(--bronze)")}
               {btn("Este y todos los eventos futuros",()=>guardarEdicion("futuros"),"var(--blue)")}
@@ -1379,7 +1351,7 @@ function App(){
         <Overlay onClose={()=>setModalSerie(null)} maxW={400}>
           <div style={{...S.mh,background:"var(--red)"}}>Cancelar serie <CloseBtn onClose={()=>setModalSerie(null)}/></div>
           <div style={{padding:"1.2rem"}}>
-            <div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:"1rem"}}>Qué eventos querés cancelar?</div>
+            <div style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".88rem",color:"#7F1D1D",marginBottom:"1rem"}}>Que eventos querés cancelar?</div>
             <div style={{display:"flex",flexDirection:"column",gap:".5rem"}}>
               {btn("Solo este evento",()=>cancelarReserva(editRes.id,"total"),"var(--red)")}
               {btn("Este y todos los futuros",()=>cancelarSerie(editRes),"#7F1D1D")}
