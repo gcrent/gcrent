@@ -1185,7 +1185,7 @@ function App(){
         </>)}
 
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
-          const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,6);
+          const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,7);
           const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):addD(hoy,-365);
           const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):hoy;
           const enPeriodo=r=>{const d=new Date(r.fecha+"T12:00");return d>=inicioPeriodo&&d<=finPeriodo;};
