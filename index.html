@@ -1185,8 +1185,8 @@ function App(){
         </>)}
 
         {seccion==="logistica"&&rol==="transportista"&&(()=>{
-          const inicioSem=getLunes(hoy),finSemT=addD(inicioSem,6);         const [fechaDesdeTransp,setFechaDesdeTransp]=useState("");         const [fechaHastaTransp,setFechaHastaTransp]=useState("");
-          const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):addD(hoy,-365);
+          const inicioPeriodo=periodoTransp==="semana"?inicioSem:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth(),1):periodoTransp==="custom"?new Date(fechaDesdeTransp+"T12:00"):addD(hoy,-365);
+          const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):periodoTransp==="custom"?new Date(fechaHastaTransp+"T12:00"):hoy;
           const finPeriodo=periodoTransp==="semana"?finSemT:periodoTransp==="mes"?new Date(hoy.getFullYear(),hoy.getMonth()+1,0):periodoTransp==="2meses"?new Date(hoy.getFullYear(),hoy.getMonth()+2,0):hoy;
           const enPeriodo=r=>r.fecha>=fmt(inicioPeriodo)&&r.fecha<=fmt(finPeriodo);
           const pend=reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
@@ -1200,6 +1200,14 @@ function App(){
               {[{k:"semana",l:"Esta semana"},{k:"mes",l:"Este mes"},{k:"2meses",l:"2 meses"},{k:"anio",l:"Último año"}].map(p=>(
                 <button key={p.k} onClick={()=>setPeriodoTransp(p.k)} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp===p.k?"var(--dark)":"var(--sand)",color:periodoTransp===p.k?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>{p.l}{periodoTransp===p.k?" ok":""}</button>
               ))}
+              <button onClick={()=>setPeriodoTransp("custom")} style={{padding:".45rem .9rem",borderRadius:8,border:"none",background:periodoTransp==="custom"?"var(--dark)":"var(--sand)",color:periodoTransp==="custom"?"#fff":"var(--mid)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600}}>Personalizado</button>
+              {periodoTransp==="custom"&&(
+              <div style={{display:"flex",gap:".5rem",alignItems:"center",flexWrap:"wrap",marginTop:".4rem"}}>
+                <input type="date" value={fechaDesdeTransp} onChange={e=>setFechaDesdeTransp(e.target.value)} style={{padding:".4rem .6rem",borderRadius:8,border:"1.5px solid var(--sand)",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",background:"var(--light)"}}/>
+                <span style={{color:"var(--mid)",fontSize:".85rem"}}>al</span>
+                <input type="date" value={fechaHastaTransp} onChange={e=>setFechaHastaTransp(e.target.value)} style={{padding:".4rem .6rem",borderRadius:8,border:"1.5px solid var(--sand)",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",background:"var(--light)"}}/>
+              </div>
+            )}
             </div>
             <div style={{background:"linear-gradient(135deg,var(--blue),#1a4a6e)",color:"#fff",borderRadius:14,padding:"1rem 1.3rem",marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".5rem"}}>
               <div>
