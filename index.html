@@ -410,7 +410,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
   return(
     <div style={{minHeight:"100vh",background:"var(--dark)"}}>
       <div style={{background:"var(--dark)",borderBottom:"2px solid var(--bronze)",padding:".75rem 1.2rem",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
-        <div style={{display:"flex",alignItems:"center",gap:".6rem"}}><img src="./logo.png.png" alt="GC" style={{width:36,height:36,objectFit:"contain"}}/><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)"}}>GC Equipos</div></div>
+        <div style={{display:"flex",alignItems:"center",gap:".6rem"}}><img src="./logo.png" alt="GC" style={{width:36,height:36,objectFit:"contain"}}/><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)"}}>GC Equipos</div></div>
         <button onClick={onVolver} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".8rem",padding:".25rem .65rem",borderRadius:6,cursor:"pointer"}}>Inicio</button>
       </div>
       <div style={{padding:"1rem",maxWidth:540,margin:"0 auto"}}>
@@ -572,7 +572,7 @@ function App(){
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
-    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null};
+    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
     const todas=[base,...genRecs(base,form.repeticion,12)];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
@@ -816,7 +816,7 @@ function App(){
   if(!rol)return(
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.5rem 2rem",width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
-        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png.png" alt="GC Equipos" style={{width:110,height:110,objectFit:"contain",borderRadius:12}}/></div>
+        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:110,height:110,objectFit:"contain",borderRadius:12}}/></div>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
         <div style={{fontSize:".8rem",color:"var(--mid)",textAlign:"center",marginBottom:"2rem",letterSpacing:".1em",textTransform:"uppercase"}}>GC Equipos de Estética</div>
         <button onClick={()=>setRol("publico")} style={{display:"block",width:"100%",padding:"1.1rem 1.2rem",marginBottom:"1.2rem",borderRadius:14,border:"none",background:"var(--bronze)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:"#fff",textAlign:"center",boxShadow:"0 4px 20px rgba(176,125,78,.35)"}}>Ver disponibilidad y reservar</button>
