@@ -90,7 +90,7 @@ const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,eq
 const pToDb=p=>({id:p.id,equipo_id:p.equipoId,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 
-function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId){
+function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos){
   const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
   const hE=horaEntrega||"00:00",hR=horaRetiro||"23:59";
@@ -98,15 +98,21 @@ function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
     if(excludeId!=null&&String(r.id)===String(excludeId))continue;
-    if(parseInt(String(r.equipoId),10)!==eId)continue;
     if(String(r.fecha)!==String(fecha))continue;
     const rE=r.horaEntrega||"00:00",rR=r.horaRetiro||"23:59";
-    if(hE<rR&&hR>rE)return true;
+    if(!(hE<rR&&hR>rE))continue;
+    if(parseInt(String(r.equipoId),10)===eId)return true;
+    if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(eId))return true;}
   }
   return false;
 }
-function equipoLibreEnFecha(reservas,equipoId,fecha){
-  return!reservas.some(r=>r.equipoId===equipoId&&r.fecha===fecha&&r.estado!=="cancelado");
+function equipoLibreEnFecha(reservas,equipoId,fecha,combos){
+  return!reservas.some(r=>{
+    if(r.fecha!==fecha||r.estado==="cancelado")return false;
+    if(r.equipoId===equipoId)return true;
+    if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(equipoId))return true;}
+    return false;
+  });
 }
 
 const S={
@@ -141,7 +147,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     return[...m.values()].filter(r=>r.clienteNombre.toLowerCase().includes(form.clienteNombre.toLowerCase())&&r.clienteNombre!==form.clienteNombre).slice(0,5);
   },[form.clienteNombre,reservas,excludeId]);
   const selCliente=r=>{fv("clienteNombre",r.clienteNombre);fv("clienteTel",r.clienteTel||"");fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");fv("localidad",r.localidad||"");};
-  const conflicto=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId);
+  const conflicto=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId,combos);
   return(
     <Overlay onClose={onCancel}>
       <div style={S.mh}>{titulo} <CloseBtn onClose={onCancel}/></div>
@@ -367,8 +373,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
     while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}
     return c;
   };
-  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay));},[selDay,reservas,equipos]);
-  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay)));},[selDay,reservas,combos]);
+  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos));},[selDay,reservas,equipos]);
+  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos)));},[selDay,reservas,combos]);
   const precio=useMemo(()=>{if(usarCombo&&selCombo)return selCombo.precio;if(!usarCombo&&selEquipo){const p=promos.find(pr=>pr.activa&&pr.equipoId===selEquipo.id);return p?Math.round(selEquipo.precio*(1-p.descuento/100)):selEquipo.precio;}return 0;},[selEquipo,selCombo,usarCombo,promos]);
   const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
   const dotsEnFecha=date=>{
@@ -568,7 +574,7 @@ function App(){
     const nombreCompleto=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(form.monto===""||form.monto===null||form.monto===undefined){showToast("Ingresá el precio de alquiler");return;}
     const monto=+form.monto;
-    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null,combos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
@@ -590,7 +596,7 @@ function App(){
   const guardarEdicion=async(alcance="solo")=>{
     if(!form.fecha){showToast("Fecha requerida");return;}
     const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
-    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
     const monto=form.monto!==""?+form.monto:editRes.monto;
     const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:TARIFA_BASE,repeticion:form.repeticion,observaciones:form.observaciones||""};
     if(editRes.serieId&&alcance==="futuros"){
