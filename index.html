@@ -816,8 +816,8 @@ function App(){
   if(!rol)return(
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.5rem 2rem",width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
-        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:150,height:150,objectFit:"contain",borderRadius:12}}/></div>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
+        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:150,height:150,objectFit:"contain",borderRadius:12,marginBottom:"-1rem"}}/></div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}><span>GC</span><span style={{fontSize:"1.4rem"}}>Rent</span></div>
         <div style={{fontSize:".8rem",color:"var(--mid)",textAlign:"center",marginBottom:"2rem",letterSpacing:".1em",textTransform:"uppercase"}}>GC Equipos de Estética</div>
         <button onClick={()=>setRol("publico")} style={{display:"block",width:"100%",padding:"1.1rem 1.2rem",marginBottom:"1.2rem",borderRadius:14,border:"none",background:"var(--bronze)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:"#fff",textAlign:"center",boxShadow:"0 4px 20px rgba(176,125,78,.35)"}}>Ver disponibilidad y reservar</button>
         <div style={{borderTop:"1px solid var(--sand)",paddingTop:"1.2rem",marginBottom:".6rem"}}>
