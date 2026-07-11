@@ -53,10 +53,10 @@ const eqColor=id=>EQ_COLORS[(id-1)%EQ_COLORS.length]||"#888";
 const CLAVES={admin:"Veinticuatro24",transportista:"marce26"};
 const TARIFA_BASE=8000;
 const LOCALIDADES={"Resistencia, Chaco":"zona1","Fontana, Chaco":"zona1","Barranqueras, Chaco":"zona1","Corrientes":"zona2","Puerto Tirol, Chaco":"zona2","Margarita Belén, Chaco":"zona2","Colonia Benítez, Chaco":"zona2"};
-const TARIFAS_INIT={zona1:{mio_up:8000,criofraxis:7000,laser:11000,teslagen_vela_ondas:6500,hifu_hollywood:8000,default:7000},zona2:{mio_up:9000,criofraxis:8000,laser:12000,teslagen_vela_ondas:7500,hifu_hollywood:9000,default:8000}};
-const GRUPOS_EQUIPO={mio_up:[8,9],criofraxis:[10,12],laser:[2,4,5,6,7],teslagen_vela_ondas:[11,13,14,15,16,17],hifu_hollywood:[1,3]};
-const getGrupo=id=>{for(const[g,ids]of Object.entries(GRUPOS_EQUIPO)){if(ids.includes(+id))return g;}return"default";};
-const calcTarifa=(equipoId,localidad,tarifas)=>{if(!localidad||!equipoId)return null;const zona=LOCALIDADES[localidad];if(!zona)return null;return tarifas[zona][getGrupo(equipoId)]||tarifas[zona].default;};
+const TARIFAS_INIT={zona1:{hifu:8000,hollywood:11000,laser:11000,mio_up:8000,criofraxis:7000,teslagen_vela_ondas:6500},zona2:{hifu:9000,hollywood:12000,laser:12000,mio_up:9000,criofraxis:8000,teslagen_vela_ondas:7500}};
+const GRUPOS_EQUIPO={hifu:[1],hollywood:[3,6,9],laser:[2,4,5,7,8,10],mio_up:[12,13],criofraxis:[14,16],teslagen_vela_ondas:[15,17,18,19,20,21]};
+const getGrupo=id=>{for(const[g,ids]of Object.entries(GRUPOS_EQUIPO)){if(ids.includes(+id))return g;}return null;};
+const calcTarifa=(equipoId,localidad,tarifas)=>{if(!localidad||!equipoId)return null;const zona=LOCALIDADES[localidad];if(!zona)return null;const g=getGrupo(equipoId);return g?tarifas[zona][g]:null;};
 
 const hoy=new Date();hoy.setHours(0,0,0,0);
 const fmt=d=>{const x=new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
@@ -540,11 +540,12 @@ function App(){
   const pendientes=useMemo(()=>reservas.filter(r=>r.estado==="pendiente"),[reservas]);
 
   const cargarDatos=async()=>{
-    const[resR,resC,resP,resE]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("id")]);
+    const[resR,resC,resP,resE,resT]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("id"),supa.from("tarifas").select("*")]);
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
     if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null})));
+    if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
   };
 
   const intentarLogin=key=>{
@@ -781,7 +782,7 @@ function App(){
                   </>}
                   {["sena","activo"].includes(r.estado)&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"completado")}>OK</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>Editar</button>}
-                  {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",padding:".3rem .6rem"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Dup</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Duplicar</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>X</button>}
                   {r.estado==="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"#7F1D1D",color:"#fff",cursor:"pointer"}} onClick={()=>borrarReserva(r.id)}>Borrar</button>}
                 </div>
@@ -832,7 +833,7 @@ function App(){
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.5rem 2rem",width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
         <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:110,height:110,objectFit:"contain",borderRadius:12}}/></div>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}><span>GC</span><span style={{fontSize:"70%"}}>Rent</span></div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
         <div style={{fontSize:".8rem",color:"var(--mid)",textAlign:"center",marginBottom:"2rem",letterSpacing:".1em",textTransform:"uppercase"}}>GC Equipos de Estética</div>
         <button onClick={()=>setRol("publico")} style={{display:"block",width:"100%",padding:"1.1rem 1.2rem",marginBottom:"1.2rem",borderRadius:14,border:"none",background:"var(--bronze)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:"#fff",textAlign:"center",boxShadow:"0 4px 20px rgba(176,125,78,.35)"}}>Ver disponibilidad y reservar</button>
         <div style={{borderTop:"1px solid var(--sand)",paddingTop:"1.2rem",marginBottom:".6rem"}}>
@@ -883,7 +884,7 @@ function App(){
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",width:"100%",overflowX:"hidden"}}>
       <nav style={{background:"var(--dark)",width:"100%",position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)"}}>
         <div style={{padding:".5rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)",letterSpacing:".1em"}}><span>GC</span><span style={{fontSize:"70%"}}>Rent</span></span>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)",letterSpacing:".1em"}}>GCRent</span>
           <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".85rem",padding:".28rem .7rem",borderRadius:6,cursor:"pointer"}}>Salir</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:`repeat(${navItems.length},1fr)`,width:"100%",padding:".5rem .6rem",gap:".4rem"}}>
@@ -975,7 +976,7 @@ function App(){
                         <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--mid)",color:"#fff",cursor:"pointer"}} onClick={()=>notificarWA(r,"rechazar")}>WA No</button>
                       </>}
                       <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>Edit</button>
-                      <button style={{padding:".15rem .45rem",fontSize:".85rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",padding:".3rem .6rem"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Dup</button>
+                      <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Dup</button>
                       {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>X</button>}
                       {r.estado==="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"#7F1D1D",color:"#fff",cursor:"pointer"}} onClick={()=>borrarReserva(r.id)}>Borrar</button>}
                     </div>
@@ -1124,7 +1125,7 @@ function App(){
                     <span style={{padding:".15rem .55rem",borderRadius:99,fontSize:".7rem",fontWeight:700,background:"#EDE9FE",color:"#4C1D95"}}>-{p.descuento}%</span>
                   </div>
                 </div>
-                <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>                                  <button onClick={async()=>{if(!window.confirm("¿Eliminar esta promo?"))return;const{error}=await supa.from("promos").delete().eq("id",p.id);if(!error)setPromos(ps=>ps.filter(x=>x.id!==p.id));}} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Eliminar</button>
+                <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>
               </div>
             </div>
           );})}
@@ -1140,12 +1141,12 @@ function App(){
                 <span style={{fontSize:".75rem",opacity:.7}}>{z.desc}</span>
               </div>
               <div style={{padding:"1rem",display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(210px,1fr))",gap:".8rem"}}>
-                {[{key:"mio_up",label:"Mio Up / Mio Up Quad"},{key:"criofraxis",label:"Criofraxis / Criolipólisis"},{key:"laser",label:"Láser (Soprano + ADSS)"},{key:"teslagen_vela_ondas",label:"Teslagen / Vela / Onda de Choque"},{key:"hifu_hollywood",label:"HIFU / Hollywood Peel"},{key:"default",label:"Resto de equipos"}].map(t=>(
+                {[{key:"hifu",label:"HIFU 12D Promax"},{key:"hollywood",label:"Hollywood Peel"},{key:"laser",label:"Láser depilación"},{key:"mio_up",label:"Mio Up / Mio Up Quad"},{key:"criofraxis",label:"Criofraxis / Criolipólisis"},{key:"teslagen_vela_ondas",label:"Teslagen / Vela / Onda de Choque"}].map(t=>(
                   <div key={t.key} style={{background:"var(--light)",borderRadius:10,padding:".7rem .9rem"}}>
                     <div style={{fontSize:".72rem",fontWeight:600,color:"var(--mid)",marginBottom:".3rem",textTransform:"uppercase",letterSpacing:".04em"}}>{t.label}</div>
                     <div style={{display:"flex",alignItems:"center",gap:".4rem"}}>
                       <span style={{fontSize:".9rem",color:"var(--mid)"}}>$</span>
-                      <input type="number" value={tarifas[z.zona][t.key]} onChange={e=>setTarifas(tf=>({...tf,[z.zona]:{...tf[z.zona],[t.key]:+e.target.value}}))} style={{...S.inp,fontWeight:700,color:z.color,fontSize:"1rem",padding:".35rem .6rem"}}/>
+                      <input type="number" value={tarifas[z.zona][t.key]} onChange={async e=>{const val=+e.target.value;setTarifas(tf=>({...tf,[z.zona]:{...tf[z.zona],[t.key]:val}}));await supa.from("tarifas").update({[z.zona]:val}).eq("grupo",t.key);}} style={{...S.inp,fontWeight:700,color:z.color,fontSize:"1rem",padding:".35rem .6rem"}}/>
                     </div>
                   </div>
                 ))}
