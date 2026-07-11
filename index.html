@@ -832,9 +832,9 @@ function App(){
   if(!rol)return(
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
       <div style={{background:"rgba(255,255,255,.97)",borderRadius:20,padding:"2.5rem 2rem",width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.5)"}}>
-        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:110,height:110,objectFit:"contain",borderRadius:12}}/></div>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}>GCRent</div>
-        <div style={{fontSize:".8rem",color:"var(--mid)",textAlign:"center",marginBottom:"2rem",letterSpacing:".1em",textTransform:"uppercase"}}>GC Equipos de Estética</div>
+        <div style={{textAlign:"center",marginBottom:"1.2rem"}}><img src="./logo.png" alt="GC Equipos" style={{width:150,height:150,objectFit:"contain",borderRadius:12,marginBottom:"-1rem"}}/></div>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2.2rem",color:"var(--bronze)",letterSpacing:".08em",marginBottom:".1rem",textAlign:"center"}}><span>GC</span><span style={{fontSize:"70%"}}>Rent</span></div>
+        <div style={{fontSize:".8rem",color:"var(--mid)",textAlign:"center",marginBottom:"2rem",letterSpacing:".1em",textTransform:"uppercase"}}>Equipos de Estética</div>
         <button onClick={()=>setRol("publico")} style={{display:"block",width:"100%",padding:"1.1rem 1.2rem",marginBottom:"1.2rem",borderRadius:14,border:"none",background:"var(--bronze)",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontSize:"1.05rem",fontWeight:700,color:"#fff",textAlign:"center",boxShadow:"0 4px 20px rgba(176,125,78,.35)"}}>Ver disponibilidad y reservar</button>
         <div style={{borderTop:"1px solid var(--sand)",paddingTop:"1.2rem",marginBottom:".6rem"}}>
           <div style={{fontSize:".72rem",color:"var(--mid)",textAlign:"center",marginBottom:".8rem",textTransform:"uppercase",letterSpacing:".08em"}}>Acceso personal</div>
@@ -884,7 +884,7 @@ function App(){
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",width:"100%",overflowX:"hidden"}}>
       <nav style={{background:"var(--dark)",width:"100%",position:"sticky",top:0,zIndex:200,borderBottom:"2px solid var(--bronze)"}}>
         <div style={{padding:".5rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid rgba(255,255,255,.08)"}}>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)",letterSpacing:".1em"}}>GCRent</span>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",color:"var(--gold)",letterSpacing:".1em"}}><span>GC</span><span style={{fontSize:"70%"}}>Rent</span></span>
           <button onClick={()=>{setRol(null);setLoginStep(null);setClienteTel("");}} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".85rem",padding:".28rem .7rem",borderRadius:6,cursor:"pointer"}}>Salir</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:`repeat(${navItems.length},1fr)`,width:"100%",padding:".5rem .6rem",gap:".4rem"}}>
@@ -1126,6 +1126,7 @@ function App(){
                   </div>
                 </div>
                 <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>
+                <button onClick={async()=>{if(!window.confirm("¿Eliminar esta promo?"))return;const{error}=await supa.from("promos").delete().eq("id",p.id);if(!error)setPromos(ps=>ps.filter(x=>x.id!==p.id));}} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Eliminar</button>
               </div>
             </div>
           );})}
