@@ -1124,7 +1124,7 @@ function App(){
                     <span style={{padding:".15rem .55rem",borderRadius:99,fontSize:".7rem",fontWeight:700,background:"#EDE9FE",color:"#4C1D95"}}>-{p.descuento}%</span>
                   </div>
                 </div>
-                <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>
+                <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>                 <button onClick={()=>setModal("promo_editar")&&setPromoEdit(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"var(--sand)",color:"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Editar</button>                 <button onClick={async()=>{if(!window.confirm("¿Eliminar esta promo?"))return;const{error}=await supa.from("promos").delete().eq("id",p.id);if(!error)setPromos(ps=>ps.filter(x=>x.id!==p.id));}} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Eliminar</button>
               </div>
             </div>
           );})}
