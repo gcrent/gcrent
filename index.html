@@ -782,7 +782,7 @@ function App(){
                   </>}
                   {["sena","activo"].includes(r.estado)&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--green)",color:"#fff",cursor:"pointer"}} onClick={()=>cambiarEstado(r.id,"completado")}>OK</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>Editar</button>}
-                  {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Duplicar</button>}
+                  {r.estado!=="cancelado"&&<button style={{padding:".4rem .9rem",fontSize:".82rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Duplicar</button>}
                   {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>X</button>}
                   {r.estado==="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"#7F1D1D",color:"#fff",cursor:"pointer"}} onClick={()=>borrarReserva(r.id)}>Borrar</button>}
                 </div>
@@ -976,7 +976,7 @@ function App(){
                         <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--mid)",color:"#fff",cursor:"pointer"}} onClick={()=>notificarWA(r,"rechazar")}>WA No</button>
                       </>}
                       <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>abrirEdicion(r)}>Edit</button>
-                      <button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Dup</button>
+                      <button style={{padding:".4rem .9rem",fontSize:".82rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("duplicar");}}>Dup</button>
                       {r.estado!=="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"var(--red)",color:"#fff",cursor:"pointer"}} onClick={()=>{setEditRes(r);setModal("cancelar");}}>X</button>}
                       {r.estado==="cancelado"&&<button style={{padding:".15rem .45rem",fontSize:".68rem",borderRadius:6,border:"none",background:"#7F1D1D",color:"#fff",cursor:"pointer"}} onClick={()=>borrarReserva(r.id)}>Borrar</button>}
                     </div>
