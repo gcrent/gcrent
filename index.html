@@ -631,8 +631,9 @@ function App(){
   const rechazarPendiente=async(id,r)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:"rechazada"});showToast("Solicitud rechazada");};
   const cancelarReserva=async(id,tipo)=>{await cambiarEstado(id,"cancelado",{cancel_tipo:tipo,observaciones:form.observaciones||undefined});setModal(null);setModalSerie(null);showToast("Cancelada");};
   const borrarReserva=async id=>{const{error}=await supa.from("reservas").delete().eq("id",id);if(error){showToast("Error: "+error.message);return;}setReservas(rs=>rs.filter(r=>r.id!==id));showToast("Eliminada");};
-  const duplicarReserva=async base=>{
+ const duplicarReserva=async base=>{
     if(!dupFecha){showToast("Seleccioná fecha");return;}
+    if(!base.comboId&&tieneConflicto(reservas,base.equipoId,dupFecha,base.horaEntrega,base.horaRetiro,null,combos)){showToast("Ese equipo ya tiene una reserva en esa fecha");return;}
     const nueva={...base,id:genId(),fecha:dupFecha,estado:"aceptada",senia:0,esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){showToast("Error: "+error.message);return;}
