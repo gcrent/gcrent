@@ -56,7 +56,7 @@ const LOCALIDADES={"Resistencia, Chaco":"zona1","Fontana, Chaco":"zona1","Barran
 const TARIFAS_INIT={zona1:{hifu:8000,hollywood:11000,laser:11000,mio_up:8000,criofraxis:7000,teslagen_vela_ondas:6500},zona2:{hifu:9000,hollywood:12000,laser:12000,mio_up:9000,criofraxis:8000,teslagen_vela_ondas:7500}};
 const GRUPOS_EQUIPO={hifu:[1],hollywood:[3,6,9],laser:[2,4,5,7,8,10],mio_up:[12,13],criofraxis:[14,16],teslagen_vela_ondas:[15,17,18,19,20,21]};
 const getGrupo=id=>{for(const[g,ids]of Object.entries(GRUPOS_EQUIPO)){if(ids.includes(+id))return g;}return null;};
-const calcTarifa=(equipoId,localidad,tarifas)=>{if(!localidad||!equipoId)return null;const zona=LOCALIDADES[localidad];if(!zona)return null;const g=getGrupo(equipoId);return g?tarifas[zona][g]:null;};
+const calcTarifa=(equipoId,localidad,tarifas,equipos)=>{if(!localidad||!equipoId)return null;const zona=LOCALIDADES[localidad];if(!zona)return null;const eq=equipos?.find(e=>e.id===+equipoId);const g=eq?.grupoTarifa||null;return g?tarifas[zona][g]:null;};
 
 const hoy=new Date();hoy.setHours(0,0,0,0);
 const fmt=d=>{const x=new Date(d);return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;};
@@ -132,7 +132,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     else{const e=equipos.find(x=>x.id===+form.equipoId);if(e){const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);fv("monto",String(p?Math.round(e.precio*(1-p.descuento/100)):e.precio));}}
   },[form.equipoId,form.comboId,form.usarCombo]);
   useEffect(()=>{
-    if(!form.usarCombo&&form.localidad&&form.equipoId){const t=calcTarifa(form.equipoId,form.localidad,tarifas);if(t)fv("tarifaTransporte",String(t));}
+    if(!form.usarCombo&&form.localidad&&form.equipoId){const t=calcTarifa(form.equipoId,form.localidad,tarifas,equipos);if(t)fv("tarifaTransporte",String(t));}
   },[form.equipoId,form.localidad,form.usarCombo]);
   const autoHoraRetiro=val=>{fv("horaEntrega",val);if(val){const[h,m]=val.split(":").map(Number);fv("horaRetiro",`${String((h+12)%24).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }};
   const sugerencias=useMemo(()=>{
@@ -370,7 +370,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
   const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos,equipos));},[selDay,reservas,equipos]);
   const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos,equipos)));},[selDay,reservas,combos]);
   const precio=useMemo(()=>{if(usarCombo&&selCombo)return selCombo.precio;if(!usarCombo&&selEquipo){const p=promos.find(pr=>pr.activa&&pr.equipoId===selEquipo.id);return p?Math.round(selEquipo.precio*(1-p.descuento/100)):selEquipo.precio;}return 0;},[selEquipo,selCombo,usarCombo,promos]);
-  const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
+  const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas,equipos)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
   const dotsEnFecha=date=>{
     const ocp=reservas.filter(r=>r.fecha===date&&r.estado!=="cancelado").length;
     if(ocp===0)return"libre";if(ocp<equipos.length)return"parcial";return"ocupado";
@@ -525,7 +525,7 @@ function App(){
   const [periodoTransp,setPeriodoTransp]=useState("semana");
   const [fechaDesdeTransp,setFechaDesdeTransp]=useState("");
   const [fechaHastaTransp,setFechaHastaTransp]=useState("");
-  const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:""});
+  const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:"",grupoTarifa:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
   const FDEF={clienteNombre:"",clienteApellido:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",localidad:"",tarifaTransporte:"",repeticion:"none",observaciones:""};
@@ -544,7 +544,7 @@ function App(){
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
-    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null})));
+    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null})));
     if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
   };
 
@@ -642,14 +642,14 @@ function App(){
   const guardarEquipo=async()=>{
     if(!equipoForm.nombre||!equipoForm.precio){showToast("Nombre y precio requeridos");return;}
     if(editEquipo){
-      const{error}=await supa.from("equipos").update({nombre:equipoForm.nombre,emoji:equipoForm.emoji,descripcion:equipoForm.desc,precio:+equipoForm.precio,maquina_id:equipoForm.maquinaId||null}).eq("id",editEquipo.id);
+      const{error}=await supa.from("equipos").update({nombre:equipoForm.nombre,emoji:equipoForm.emoji,descripcion:equipoForm.desc,precio:+equipoForm.precio,maquina_id:equipoForm.maquinaId||null,grupo_tarifa:equipoForm.grupoTarifa||null}).eq("id",editEquipo.id);
       if(error){showToast("Error: "+error.message);return;}
-      setEquipos(es=>es.map(e=>e.id===editEquipo.id?{...e,nombre:equipoForm.nombre,emoji:equipoForm.emoji,desc:equipoForm.desc,precio:+equipoForm.precio,maquinaId:equipoForm.maquinaId||null}:e));
+      setEquipos(es=>es.map(e=>e.id===editEquipo.id?{...e,nombre:equipoForm.nombre,emoji:equipoForm.emoji,desc:equipoForm.desc,precio:+equipoForm.precio,maquinaId:equipoForm.maquinaId||null,grupoTarifa:equipoForm.grupoTarifa||null}:e));
       showToast("Actualizado");
     } else {
-      const{data,error}=await supa.from("equipos").insert({nombre:equipoForm.nombre,emoji:equipoForm.emoji,descripcion:equipoForm.desc,precio:+equipoForm.precio,activo:true,maquina_id:equipoForm.maquinaId||null}).select().single();
+      const{data,error}=await supa.from("equipos").insert({nombre:equipoForm.nombre,emoji:equipoForm.emoji,descripcion:equipoForm.desc,precio:+equipoForm.precio,activo:true,maquina_id:equipoForm.maquinaId||null,grupo_tarifa:equipoForm.grupoTarifa||null}).select().single();
       if(error){showToast("Error: "+error.message);return;}
-      setEquipos(es=>[...es,{id:data.id,nombre:data.nombre,emoji:data.emoji,desc:data.descripcion,precio:+data.precio,activo:true,maquinaId:data.maquina_id||null}]);
+      setEquipos(es=>[...es,{id:data.id,nombre:data.nombre,emoji:data.emoji,desc:data.descripcion,precio:+data.precio,activo:true,maquinaId:data.maquina_id||null,grupoTarifa:data.grupo_tarifa||null}]);
       showToast("Agregado");
     }
     setModal(null);setEquipoForm({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:""});setEditEquipo(null);
@@ -1030,7 +1030,7 @@ function App(){
                       <span style={{fontSize:".65rem",padding:".12rem .45rem",borderRadius:99,background:ocio?"#FEE2E2":"#D1FAE5",color:ocio?"#7F1D1D":"#064E3B",fontWeight:700}}>{ocio?"Ocioso":"Disp."}</span>
                     </div>
                     <div style={{display:"flex",gap:".35rem"}}>
-                      <button onClick={()=>{setEditEquipo(e);setEquipoForm({nombre:e.nombre,emoji:e.emoji,desc:e.desc||"",precio:String(e.precio),maquinaId:e.maquinaId||""});setModal("equipo");}} style={{flex:1,padding:".22rem 0",fontSize:".72rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}}>Editar</button>
+                      <button onClick={()=>{setEditEquipo(e);setEquipoForm({nombre:e.nombre,emoji:e.emoji,desc:e.desc||"",precio:String(e.precio),maquinaId:e.maquinaId||"",grupoTarifa:e.grupoTarifa||""});setModal("equipo");}} style={{flex:1,padding:".22rem 0",fontSize:".72rem",borderRadius:6,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer"}}>Editar</button>
                       <button onClick={()=>eliminarEquipo(e.id)} style={{flex:1,padding:".22rem 0",fontSize:".72rem",borderRadius:6,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer"}}>Borrar</button>
                     </div>
                   </div>
@@ -1330,7 +1330,7 @@ function App(){
             <div style={S.fg}><label style={S.lbl}>Emoji</label><input value={equipoForm.emoji} onChange={e=>setEquipoForm(f=>({...f,emoji:e.target.value}))} style={{...S.inp,fontSize:"1.3rem"}}/></div>
             <div style={S.fg}><label style={S.lbl}>Descripción</label><input value={equipoForm.desc} onChange={e=>setEquipoForm(f=>({...f,desc:e.target.value}))} style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Precio de alquiler</label><input type="number" value={equipoForm.precio} onChange={e=>setEquipoForm(f=>({...f,precio:e.target.value}))} style={S.inp}/></div>
-            <div style={S.fg}><label style={S.lbl}>ID de máquina compartida (opcional)</label><input value={equipoForm.maquinaId||""} onChange={e=>setEquipoForm(f=>({...f,maquinaId:e.target.value}))} placeholder="ej: laser2, laser3 (dejar vacío si es independiente)" style={S.inp}/></div>
+            <div style={S.fg}><label style={S.lbl}>ID de máquina compartida (opcional)</label><input value={equipoForm.maquinaId||""} onChange={e=>setEquipoForm(f=>({...f,maquinaId:e.target.value}))} placeholder="ej: laser2, laser3 (dejar vacío si es independiente)" style={S.inp}/></div>             <div style={S.fg}><label style={S.lbl}>Grupo de tarifa</label><select value={equipoForm.grupoTarifa||""} onChange={e=>setEquipoForm(f=>({...f,grupoTarifa:e.target.value}))} style={S.inp}><option value="">Sin tarifa</option><option value="hifu">HIFU</option><option value="hollywood">Hollywood Peel</option><option value="laser">Láser depilación</option><option value="mio_up">Mio Up</option><option value="criofraxis">Criofraxis / Criolipólisis</option><option value="teslagen_vela_ondas">Teslagen / Vela / Onda de Choque</option></select></div>
           </div>
           <div style={S.mf}>
             <button onClick={()=>{setModal(null);setEditEquipo(null);}} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
