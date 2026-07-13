@@ -132,7 +132,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     else{const e=equipos.find(x=>x.id===+form.equipoId);if(e){const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);fv("monto",String(p?Math.round(e.precio*(1-p.descuento/100)):e.precio));}}
   },[form.equipoId,form.comboId,form.usarCombo]);
   useEffect(()=>{
-    if(!form.usarCombo&&form.localidad&&form.equipoId&&form.tarifaTransporte===""){const t=calcTarifa(form.equipoId,form.localidad,tarifas);if(t)fv("tarifaTransporte",String(t));}
+    if(!form.usarCombo&&form.localidad&&form.equipoId){const t=calcTarifa(form.equipoId,form.localidad,tarifas);if(t)fv("tarifaTransporte",String(t));}
   },[form.equipoId,form.localidad,form.usarCombo]);
   const autoHoraRetiro=val=>{fv("horaEntrega",val);if(val){const[h,m]=val.split(":").map(Number);fv("horaRetiro",`${String((h+12)%24).padStart(2,'0')}:${String(m).padStart(2,'0')}`); }};
   const sugerencias=useMemo(()=>{
