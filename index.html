@@ -574,7 +574,7 @@ function App(){
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
-    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
+    const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
     const todas=[base,...genRecs(base,form.repeticion,12)];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
@@ -594,7 +594,7 @@ function App(){
     const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
     const monto=form.monto!==""?+form.monto:editRes.monto;
-    const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""?+form.tarifaTransporte:0,repeticion:form.repeticion,observaciones:form.observaciones||""};
+    const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,observaciones:form.observaciones||""};
     if(editRes.serieId&&alcance==="futuros"){
       const futures=reservas.filter(r=>r.serieId===editRes.serieId&&r.fecha>=editRes.fecha);
       await Promise.all(futures.map(r=>supa.from("reservas").update(toDb({...updated,id:r.id,fecha:r.fecha})).eq("id",r.id)));
