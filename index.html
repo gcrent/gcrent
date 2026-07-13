@@ -585,7 +585,7 @@ function App(){
   const abrirEdicion=r=>{
     setEditRes(r);
     const partes=r.clienteNombre.split(" ");
-    setForm({clienteNombre:partes[0],clienteApellido:partes.slice(1).join(" "),clienteEmail:r.clienteEmail||"",clienteTel:r.clienteTel||"",equipoId:String(r.equipoId||1),comboId:r.comboId||"",usarCombo:!!r.comboId,fecha:r.fecha,horaEntrega:r.horaEntrega||"",horaRetiro:r.horaRetiro||"",monto:String(r.monto),senia:String(r.senia),direccion:r.direccion||"",localidad:r.localidad||"",tarifaTransporte:String(r.tarifaTransporte||TARIFA_BASE),repeticion:r.repeticion||"none",observaciones:r.observaciones||""});
+    setForm({clienteNombre:partes[0],clienteApellido:partes.slice(1).join(" "),clienteEmail:r.clienteEmail||"",clienteTel:r.clienteTel||"",equipoId:String(r.equipoId||1),comboId:r.comboId||"",usarCombo:!!r.comboId,fecha:r.fecha,horaEntrega:r.horaEntrega||"",horaRetiro:r.horaRetiro||"",monto:String(r.monto),senia:String(r.senia),direccion:r.direccion||"",localidad:r.localidad||"",tarifaTransporte:String(r.tarifaTransporte??TARIFA_BASE),repeticion:r.repeticion||"none",observaciones:r.observaciones||""});
     setModal("editar");
   };
 
