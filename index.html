@@ -83,7 +83,7 @@ const genRecs=(base,rep,cant=12)=>{
 };
 const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
 const iLabel=(r,combos,equipos)=>{if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`${c.nombre}`:"Combo";}const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";};
-const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte||TARIFA_BASE,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null,observaciones:r.observaciones||""});
+const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte??0,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null,observaciones:r.observaciones||""});
 const fromDb=r=>({id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo,observaciones:r.observaciones||""});
 const cToDb=c=>({id:c.id,nombre:c.nombre,descripcion:c.desc||"",precio:c.precio,equipo_ids:c.equipoIds});
 const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,equipoIds:c.equipo_ids||[]});
@@ -703,7 +703,7 @@ function App(){
   },[reservas]);
   const lunesSem=addD(getLunes(hoy),semOff*7),finSem=addD(lunesSem,6);
   const resSem=reservas.filter(r=>r.fecha>=fmt(lunesSem)&&r.fecha<=fmt(finSem)&&r.estado!=="cancelado");
-  const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte||TARIFA_BASE),0);
+  const totalSem=resSem.reduce((a,r)=>a+(r.tarifaTransporte??0),0);
   const alertas=reservas.filter(r=>r.fecha===fmt(addD(hoy,1))&&!["cancelado","completado"].includes(r.estado));
   const resDia=useMemo(()=>reservas.filter(r=>r.fecha===selDay&&r.estado!=="cancelado").sort((a,b)=>(a.horaEntrega||"").localeCompare(b.horaEntrega||"")),[reservas,selDay]);
   const hayFiltroCal=!!(filtroCal.nombre||filtroCal.equipo);
@@ -733,7 +733,7 @@ function App(){
   };
   const exportarExcel=()=>{
     const wb=window.XLSX.utils.book_new();
-    const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Localidad","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.localidad||"",r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte||TARIFA_BASE,estadoLabel(r.estado)])]);
+    const ws=window.XLSX.utils.aoa_to_sheet([["GCRent"],[`Exportado: ${new Date().toLocaleString("es-AR")}`],[],["ID","Cliente","Tel","Equipo","Fecha","Localidad","Monto","Seña","Saldo","Transporte","Estado"],...reservasFiltradas.map(r=>[r.id,r.clienteNombre,r.clienteTel,IL(r),r.fecha,r.localidad||"",r.monto,r.senia,r.monto-r.senia,r.tarifaTransporte??0,estadoLabel(r.estado)])]);
     window.XLSX.utils.book_append_sheet(wb,ws,"Reservas");
     window.XLSX.writeFile(wb,`GCRent_${fmt(hoy).replace(/-/g,"")}.xlsx`);
     showToast("Excel descargado");
@@ -965,7 +965,7 @@ function App(){
                       {r.observaciones&&<div style={{fontSize:".75rem",color:"var(--mid)",fontStyle:"italic",marginTop:".1rem"}}>"{r.observaciones}"</div>}
                       <div style={{fontSize:".78rem",display:"flex",gap:".8rem",marginTop:".15rem"}}>
                         <span style={{color:"var(--bronze)",fontWeight:700}}>${r.monto.toLocaleString()}</span>
-                        <span style={{color:"var(--blue)",fontWeight:700}}>${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</span>
+                        <span style={{color:"var(--blue)",fontWeight:700}}>${(r.tarifaTransporte??0).toLocaleString()}</span>
                       </div>
                     </div>
                     {badge(r.estado)}
@@ -1186,7 +1186,7 @@ function App(){
           const pend=reservas.filter(r=>r.estado==="aceptada"&&enPeriodo(r));
           const enEst=reservas.filter(r=>r.estado==="activo"&&enPeriodo(r));
           const ret=reservas.filter(r=>r.estado==="completado"&&enPeriodo(r));
-          const totalPeriodo=[...pend,...enEst,...ret].reduce((a,r)=>a+(r.tarifaTransporte||TARIFA_BASE),0);
+          const totalPeriodo=[...pend,...enEst,...ret].reduce((a,r)=>a+(r.tarifaTransporte??0),0);
           const mostrar=filtroTransp==="pendiente"?pend:filtroTransp==="entregado"?enEst:ret;
           return(<>
             <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>Mis Entregas</h2>
@@ -1223,7 +1223,7 @@ function App(){
               <div key={r.id} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",marginBottom:".8rem",borderLeft:`4px solid ${filtroTransp==="pendiente"?"var(--gold)":filtroTransp==="entregado"?"var(--blue)":"var(--green)"}`}}>
                 <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap",gap:".4rem",marginBottom:".5rem"}}>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.05rem"}}>{IL(r)}</div>
-                  <span style={{fontWeight:700,color:"var(--blue)",fontSize:"1rem"}}>${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</span>
+                  <span style={{fontWeight:700,color:"var(--blue)",fontSize:"1rem"}}>${(r.tarifaTransporte??0).toLocaleString()}</span>
                 </div>
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>{r.clienteNombre}</span>
@@ -1232,8 +1232,8 @@ function App(){
                 </div>
                 <div style={{display:"flex",gap:".4rem",marginTop:".7rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
-                  {r.estado==="activo"&&<>{btn(`Retirado — $${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}`,()=>cambiarEstado(r.id,"completado"),"var(--green)")} {btn("Deshacer",()=>cambiarEstado(r.id,"aceptada"),"#E8E0D5","var(--mid)")}</>}
-                  {r.estado==="completado"&&<><span style={{fontSize:".85rem",color:"var(--green)",fontWeight:700}}>Cobrado ${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</span> {btn("Deshacer",()=>cambiarEstado(r.id,"activo"),"#E8E0D5","var(--mid)")}</>}
+                  {r.estado==="activo"&&<>{btn(`Retirado — $${(r.tarifaTransporte??0).toLocaleString()}`,()=>cambiarEstado(r.id,"completado"),"var(--green)")} {btn("Deshacer",()=>cambiarEstado(r.id,"aceptada"),"#E8E0D5","var(--mid)")}</>}
+                  {r.estado==="completado"&&<><span style={{fontSize:".85rem",color:"var(--green)",fontWeight:700}}>Cobrado ${(r.tarifaTransporte??0).toLocaleString()}</span> {btn("Deshacer",()=>cambiarEstado(r.id,"activo"),"#E8E0D5","var(--mid)")}</>}
                 </div>
               </div>
             ))}
@@ -1270,7 +1270,7 @@ function App(){
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".8rem"}}>{r.clienteTel||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".78rem",color:"var(--mid)"}}>{r.direccion||"—"}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontSize:".78rem",color:"var(--mid)"}}>{r.localidad||"—"}</td>
-                      <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontWeight:700,color:"var(--blue)"}}>${(r.tarifaTransporte||TARIFA_BASE).toLocaleString()}</td>
+                      <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0",fontWeight:700,color:"var(--blue)"}}>${(r.tarifaTransporte??0).toLocaleString()}</td>
                       <td style={{padding:".5rem .8rem",borderBottom:"1px solid #EDE8E0"}}>
                         <span style={{display:"inline-block",padding:".15rem .55rem",borderRadius:99,fontSize:".7rem",fontWeight:700,background:r.estado==="completado"?"#D1FAE5":"#FEF3CD",color:r.estado==="completado"?"#064E3B":"#7A5800"}}>{r.estado==="completado"?"Completado":"Pendiente"}</span>
                       </td>
