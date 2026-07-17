@@ -523,8 +523,9 @@ const eq=equipos.find(e=>e.id===eId);
       if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||combinados.includes(id)))return true;}
       return false;
     };
-    if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado").length;
-    return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha).length;
+    const fmtHoy=fmt(hoy);
+    if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha<=fmtHoy).length;
+    return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha&&r.fecha<=fmtHoy).length;
   };
   if(loading)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
   return(<>
