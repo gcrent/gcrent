@@ -514,13 +514,13 @@ function SeccionMantenimiento({equipos,reservas,combos,showToast,S}){
   };
   const contarDesdeUltimo=(eId)=>{
     const ultimo=mantenimientos.filter(m=>m.equipo_id===eId).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
-    const eq=equipos.find(e=>e.id===eId);
+const eq=equipos.find(e=>e.id===eId);
     const maquinaId=eq?.maquinaId||null;
-    const hermanos=maquinaId?equipos.filter(e=>e.maquinaId===maquinaId).map(e=>e.id):[];
+    const combinados=maquinaId?equipos.filter(e=>e.maquinaId===maquinaId&&e.esCombinado).map(e=>e.id):[];
     const tieneEquipo=r=>{
       if(r.equipoId===eId)return true;
-      if(maquinaId&&hermanos.includes(r.equipoId))return true;
-      if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||(maquinaId&&hermanos.includes(id))))return true;}
+      if(combinados.includes(r.equipoId))return true;
+      if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||combinados.includes(id)))return true;}
       return false;
     };
     if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado").length;
@@ -543,7 +543,7 @@ function SeccionMantenimiento({equipos,reservas,combos,showToast,S}){
       <button onClick={registrar} disabled={guardando} style={{padding:".6rem 1.4rem",borderRadius:8,border:"none",background:"var(--green)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",fontWeight:600,cursor:"pointer"}}>{guardando?"Guardando...":"Registrar"}</button>
     </div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"1rem"}}>
-      {equipos.map(e=>{
+      {equipos.filter(e=>!e.esCombinado).map(e=>{
         const cant=contarDesdeUltimo(e.id);
         const alerta=e.alertaMantenimiento||30;
         const pct=Math.min(cant/alerta,1);
@@ -636,7 +636,7 @@ function App(){
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
-    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30})));
+    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30,esCombinado:e.es_combinado||false})));
     if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
   };
 
