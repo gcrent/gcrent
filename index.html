@@ -488,7 +488,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
     </div>
   );
 }
-function SeccionMantenimiento({equipos,reservas,showToast,S}){
+function SeccionMantenimiento({equipos,reservas,combos,showToast,S}){
   const [mantenimientos,setMantenimientos]=useState([]);
   const [loading,setLoading]=useState(true);
   const [historialEquipo,setHistorialEquipo]=useState(null);
@@ -514,8 +514,13 @@ function SeccionMantenimiento({equipos,reservas,showToast,S}){
   };
   const contarDesdeUltimo=(eId)=>{
     const ultimo=mantenimientos.filter(m=>m.equipo_id===eId).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
-    if(!ultimo)return reservas.filter(r=>r.equipoId===eId&&r.estado!=="cancelado").length;
-    return reservas.filter(r=>r.equipoId===eId&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha).length;
+    const tieneEquipo=r=>{
+      if(r.equipoId===eId)return true;
+      if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(eId))return true;}
+      return false;
+    };
+    if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado").length;
+    return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha).length;
   };
   if(loading)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
   return(<>
@@ -1401,7 +1406,7 @@ function App(){
         </>)}
 
         {seccion==="liquidacion"&&rol==="admin"&&<SeccionLiquidacion reservas={reservas} mesKey={mesKey} showToast={showToast} btn={btn}/>}
-        {seccion==="mantenimiento"&&rol==="mantenimiento"&&<SeccionMantenimiento equipos={equipos} reservas={reservas} showToast={showToast} S={S}/>}
+        {seccion==="mantenimiento"&&rol==="mantenimiento"&&<SeccionMantenimiento equipos={equipos} reservas={reservas} combos={combos} showToast={showToast} S={S}/>}
 
         {seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
           const mis=reservas.filter(r=>r.clienteTel===clienteTel||r.clienteEmail===clienteTel).sort((a,b)=>a.fecha.localeCompare(b.fecha));
