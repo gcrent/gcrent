@@ -544,7 +544,7 @@ function App(){
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
-    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null})));
+    if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30})));
     if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
   };
 
@@ -878,7 +878,9 @@ function App(){
   const navItems=rol==="admin"
     ?[{id:"agenda",l:`Agenda${pendientes.length>0?" ("+pendientes.length+")":""}`},{id:"calendario",l:"Cal."},{id:"equipos",l:"Equipos"},{id:"metricas",l:"Metricas"},{id:"promos",l:"Promos"},{id:"tarifas",l:"Tarifas"},{id:"buscar",l:"Buscar"},{id:"liquidacion",l:"Liquid."}]
     :rol==="transportista"
-    ?[{id:"logistica",l:"Entregas"},{id:"semana",l:"Mi semana"}]     :rol==="mantenimiento"     ?[{id:"mantenimiento",l:"Equipos"}]
+    ?[{id:"logistica",l:"Entregas"},{id:"semana",l:"Mi semana"}]
+    :rol==="mantenimiento"
+    ?[{id:"mantenimiento",l:"Equipos"}]     :rol==="mantenimiento"     ?[{id:"mantenimiento",l:"Equipos"}]
     :[{id:"calendario_cliente",l:"Mi calendario"},{id:"buscar_cliente",l:"Mis reservas"}];
 
   return(
@@ -916,6 +918,14 @@ function App(){
             </div>
           )}
           {alertas.map(a=><div key={a.id} style={{background:"#FFFBEB",border:"1.5px solid var(--gold)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#713F12",marginBottom:".6rem"}}>Mañana: {a.clienteNombre} — {IL(a)}</div>)}
+          {equipos.filter(e=>{
+            const reservasEquipo=reservas.filter(r=>r.equipoId===e.id&&r.estado!=="cancelado").length;
+            return reservasEquipo>0&&reservasEquipo>=(e.alertaMantenimiento||30);
+          }).map(e=>(
+            <div key={e.id} style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#7F1D1D",marginBottom:".6rem"}}>
+              {e.emoji} {e.nombre} — Mantenimiento requerido
+            </div>
+          ))}
           <div style={{display:"flex",justifyContent:"flex-end",marginBottom:".8rem"}}>{btn("+ Nueva reserva",()=>{setForm(FDEF);setModal("nueva");},"var(--gold)")}</div>
           {reservas.length===0?<div style={{textAlign:"center",padding:"3rem",color:"var(--mid)"}}>No hay reservas aún.</div>:<TablaReservas rs={reservasOrdenadas} conHoras={true}/>}
         </>)}
@@ -1308,6 +1318,89 @@ function App(){
         </>)}
 
         {seccion==="liquidacion"&&rol==="admin"&&<SeccionLiquidacion reservas={reservas} mesKey={mesKey} showToast={showToast} btn={btn}/>}
+
+        {seccion==="mantenimiento"&&rol==="mantenimiento"&&(()=>{
+          const [mantenimientos,setMantenimientos]=React.useState([]);
+          const [loadingMant,setLoadingMant]=React.useState(true);
+          const [historialEquipo,setHistorialEquipo]=React.useState(null);
+          const [formMant,setFormMant]=React.useState({equipoId:"",descripcion:""});
+          const [guardandoMant,setGuardandoMant]=React.useState(false);
+          React.useEffect(()=>{
+            (async()=>{
+              const{data}=await supa.from("mantenimientos").select("*").order("fecha",{ascending:false});
+              if(data)setMantenimientos(data);
+              setLoadingMant(false);
+            })();
+          },[]);
+          const registrarMant=async()=>{
+            if(!formMant.equipoId){showToast("Seleccioná un equipo");return;}
+            setGuardandoMant(true);
+            const nuevo={id:genId(),equipo_id:+formMant.equipoId,fecha:fmt(hoy),descripcion:formMant.descripcion||""};
+            const{error}=await supa.from("mantenimientos").insert(nuevo);
+            if(error){showToast("Error: "+error.message);setGuardandoMant(false);return;}
+            setMantenimientos(m=>[nuevo,...m]);
+            setFormMant({equipoId:"",descripcion:""});
+            setGuardandoMant(false);
+            showToast("Mantenimiento registrado");
+          };
+          const contarDesdeUltimoMant=(eId)=>{
+            const ultimo=mantenimientos.filter(m=>m.equipo_id===eId).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+            if(!ultimo)return reservas.filter(r=>r.equipoId===eId&&r.estado!=="cancelado").length;
+            return reservas.filter(r=>r.equipoId===eId&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha).length;
+          };
+          if(loadingMant)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
+          return(<>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.5rem",marginBottom:".9rem"}}>Mantenimiento de Equipos</h2>
+            <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1.2rem",marginBottom:"1rem"}}>
+              <div style={{fontWeight:700,fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",marginBottom:".8rem"}}>Registrar mantenimiento</div>
+              <div style={S.fg}><label style={S.lbl}>Equipo</label>
+                <select value={formMant.equipoId} onChange={e=>setFormMant(f=>({...f,equipoId:e.target.value}))} style={S.inp}>
+                  <option value="">Seleccioná equipo</option>
+                  {equipos.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
+                </select>
+              </div>
+              <div style={S.fg}><label style={S.lbl}>Trabajo realizado</label>
+                <textarea value={formMant.descripcion} onChange={e=>setFormMant(f=>({...f,descripcion:e.target.value}))} placeholder="Describí el mantenimiento realizado..." rows={3} style={{...S.inp,resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/>
+              </div>
+              <button onClick={registrarMant} disabled={guardandoMant} style={{padding:".6rem 1.4rem",borderRadius:8,border:"none",background:"var(--green)",color:"#fff",fontFamily:"'DM Sans',sans-serif",fontSize:".9rem",fontWeight:600,cursor:"pointer"}}>{guardandoMant?"Guardando...":"Registrar"}</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"1rem"}}>
+              {equipos.map(e=>{
+                const cant=contarDesdeUltimoMant(e.id);
+                const alerta=e.alertaMantenimiento||30;
+                const pct=Math.min(cant/alerta,1);
+                const color=pct>=1?"var(--red)":pct>=.7?"var(--gold)":"var(--green)";
+                const ultimoMant=mantenimientos.filter(m=>m.equipo_id===e.id)[0];
+                return(
+                  <div key={e.id} style={{background:"#fff",border:`1px solid ${pct>=1?"#FCA5A5":"var(--sand)"}`,borderRadius:14,padding:"1rem",cursor:"pointer"}} onClick={()=>setHistorialEquipo(historialEquipo===e.id?null:e.id)}>
+                    <div style={{fontSize:"1.5rem",marginBottom:".3rem"}}>{e.emoji}</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:".95rem",marginBottom:".5rem"}}>{e.nombre}</div>
+                    <div style={{background:"var(--sand)",borderRadius:99,height:6,marginBottom:".4rem"}}>
+                      <div style={{background:color,borderRadius:99,height:6,width:`${pct*100}%`,transition:"width .3s"}}/>
+                    </div>
+                    <div style={{fontSize:".75rem",color,fontWeight:700}}>{cant}/{alerta} reservas</div>
+                    {ultimoMant&&<div style={{fontSize:".7rem",color:"var(--mid)",marginTop:".2rem"}}>Último: {fmtVis(ultimoMant.fecha)}</div>}
+                    {pct>=1&&<div style={{fontSize:".72rem",background:"#FEE2E2",color:"var(--red)",borderRadius:6,padding:".2rem .4rem",marginTop:".4rem",fontWeight:700}}>MANTENIMIENTO REQUERIDO</div>}
+                    {historialEquipo===e.id&&(
+                      <div style={{marginTop:".8rem",borderTop:"1px solid var(--sand)",paddingTop:".6rem"}}>
+                        <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",marginBottom:".4rem"}}>Historial</div>
+                        {mantenimientos.filter(m=>m.equipo_id===e.id).length===0
+                          ?<div style={{fontSize:".78rem",color:"var(--mid)"}}>Sin mantenimientos registrados</div>
+                          :mantenimientos.filter(m=>m.equipo_id===e.id).map(m=>(
+                            <div key={m.id} style={{fontSize:".78rem",padding:".3rem 0",borderBottom:"1px solid var(--sand)"}}>
+                              <div style={{fontWeight:600}}>{fmtVis(m.fecha)}</div>
+                              {m.descripcion&&<div style={{color:"var(--mid)",marginTop:".1rem"}}>{m.descripcion}</div>}
+                            </div>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>);
+        })()}
 
         {seccion==="buscar_cliente"&&rol==="cliente"&&(()=>{
           const mis=reservas.filter(r=>r.clienteTel===clienteTel||r.clienteEmail===clienteTel).sort((a,b)=>a.fecha.localeCompare(b.fecha));
