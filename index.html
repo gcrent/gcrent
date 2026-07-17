@@ -618,6 +618,7 @@ function App(){
   const [periodoTransp,setPeriodoTransp]=useState("semana");
   const [fechaDesdeTransp,setFechaDesdeTransp]=useState("");
   const [fechaHastaTransp,setFechaHastaTransp]=useState("");
+  const [mantenimientos,setMantenimientos]=useState([]);
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:"",grupoTarifa:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
@@ -633,12 +634,12 @@ function App(){
   const pendientes=useMemo(()=>reservas.filter(r=>r.estado==="pendiente"),[reservas]);
 
   const cargarDatos=async()=>{
-    const[resR,resC,resP,resE,resT]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("id"),supa.from("tarifas").select("*")]);
+    const[resR,resC,resP,resE,resT,resM]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("id"),supa.from("tarifas").select("*"),supa.from("mantenimientos").select("*").order("fecha",{ascending:false})]);
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
     if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30,esCombinado:e.es_combinado||false})));
-    if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
+    if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}     if(resM.data)setMantenimientos(resM.data);
   };
 
   const intentarLogin=key=>{
@@ -1016,8 +1017,10 @@ function App(){
             const fmtHoy=fmt(hoy);
             const maquinaId=e.maquinaId||null;
             const combinados=maquinaId?equipos.filter(x=>x.maquinaId===maquinaId&&x.esCombinado).map(x=>x.id):[];
+            const ultimoMant=mantenimientos.filter(m=>m.equipo_id===e.id).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+            const desdeF=ultimoMant?ultimoMant.fecha:"0000-00-00";
             const cant=reservas.filter(r=>{
-              if(r.estado==="cancelado"||r.fecha>fmtHoy)return false;
+              if(r.estado==="cancelado"||r.fecha>fmtHoy||r.fecha<desdeF)return false;
               if(r.equipoId===e.id)return true;
               if(combinados.includes(r.equipoId))return true;
               if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===e.id||combinados.includes(id)))return true;}
