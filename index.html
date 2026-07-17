@@ -514,9 +514,13 @@ function SeccionMantenimiento({equipos,reservas,combos,showToast,S}){
   };
   const contarDesdeUltimo=(eId)=>{
     const ultimo=mantenimientos.filter(m=>m.equipo_id===eId).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+    const eq=equipos.find(e=>e.id===eId);
+    const maquinaId=eq?.maquinaId||null;
+    const hermanos=maquinaId?equipos.filter(e=>e.maquinaId===maquinaId).map(e=>e.id):[];
     const tieneEquipo=r=>{
       if(r.equipoId===eId)return true;
-      if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(eId))return true;}
+      if(maquinaId&&hermanos.includes(r.equipoId))return true;
+      if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||(maquinaId&&hermanos.includes(id))))return true;}
       return false;
     };
     if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado").length;
