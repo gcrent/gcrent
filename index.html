@@ -1012,8 +1012,18 @@ function App(){
           )}
           {alertas.map(a=><div key={a.id} style={{background:"#FFFBEB",border:"1.5px solid var(--gold)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#713F12",marginBottom:".6rem"}}>Mañana: {a.clienteNombre} — {IL(a)}</div>)}
           {equipos.filter(e=>{
-            const reservasEquipo=reservas.filter(r=>r.equipoId===e.id&&r.estado!=="cancelado").length;
-            return reservasEquipo>0&&reservasEquipo>=(e.alertaMantenimiento||30);
+            if(e.esCombinado)return false;
+            const fmtHoy=fmt(hoy);
+            const maquinaId=e.maquinaId||null;
+            const combinados=maquinaId?equipos.filter(x=>x.maquinaId===maquinaId&&x.esCombinado).map(x=>x.id):[];
+            const cant=reservas.filter(r=>{
+              if(r.estado==="cancelado"||r.fecha>fmtHoy)return false;
+              if(r.equipoId===e.id)return true;
+              if(combinados.includes(r.equipoId))return true;
+              if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===e.id||combinados.includes(id)))return true;}
+              return false;
+            }).length;
+            return cant>0&&cant>=(e.alertaMantenimiento||30);
           }).map(e=>(
             <div key={e.id} style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#7F1D1D",marginBottom:".6rem"}}>
               {e.emoji} {e.nombre} — Mantenimiento requerido
