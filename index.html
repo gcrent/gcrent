@@ -1344,7 +1344,7 @@ function App(){
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>{r.clienteNombre}</span>
                   <span>{fmtVis(r.fecha)} · {r.horaEntrega||"—"} · {r.horaRetiro||"—"}</span>
-                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}
+                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}                   <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".88rem"}}>Alquiler: ${r.monto.toLocaleString()}{r.senia>0?` (seña: $${r.senia.toLocaleString()})`:""}</span>
                 </div>
                 <div style={{display:"flex",gap:".4rem",marginTop:".7rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
