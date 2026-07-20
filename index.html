@@ -73,11 +73,7 @@ const estadoLabel=e=>({aceptada:"Aceptada",sena:"Con seña",activo:"Activo",comp
 const genId=()=>Date.now()+Math.floor(Math.random()*1000);
 const genRecs=(base,rep,cant=12,hasta="")=>{
   if(!rep||rep==="none")return[];
-  if(rep==="diaria"&&hasta){
-    const result=[];let d=addD(new Date(base.fecha+"T12:00"),1);const fin=new Date(hasta+"T12:00");
-    while(d<=fin){result.push({...base,id:genId(),fecha:fmt(d),senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id});d=addD(d,1);}
-    return result;
-  }
+  if(rep==="diaria"&&hasta){const result=[];let d=addD(new Date(base.fecha+"T12:00"),1);const fin=new Date(hasta+"T12:00");while(d<=fin){result.push({...base,id:genId(),fecha:fmt(d),senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id});d=addD(d,1);}return result;}
   return Array.from({length:cant},(_,i)=>{
     let f;
     if(rep==="semanal")f=fmt(addD(new Date(base.fecha+"T12:00"),(i+1)*7));
@@ -86,7 +82,7 @@ const genRecs=(base,rep,cant=12,hasta="")=>{
     return{...base,id:genId(),fecha:f,senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id};
   });
 };
-  const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
+const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
 const iLabel=(r,combos,equipos)=>{if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`${c.nombre}`:"Combo";}const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";};
 const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte??0,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null,observaciones:r.observaciones||""});
 const fromDb=r=>({id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo,observaciones:r.observaciones||""});
@@ -179,7 +175,8 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
         }
         <div style={S.fg}><label style={S.lbl}>Observaciones</label><textarea value={form.observaciones||""} onChange={e=>fv("observaciones",e.target.value)} placeholder="Notas internas sobre esta reserva..." rows={2} style={{...S.inp,resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}><label style={S.lbl}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={S.inp}/></div>         {form.repeticion==="diaria"&&<div style={S.fg}><label style={S.lbl}>Repetir hasta</label><input type="date" value={form.repeticionHasta||""} onChange={e=>fv("repeticionHasta",e.target.value)} min={form.fecha} style={S.inp}/></div>}
+          <div style={S.fg}><label style={S.lbl}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={S.inp}/></div>
+        {form.repeticion==="diaria"&&<div style={S.fg}><label style={S.lbl}>Repetir hasta</label><input type="date" value={form.repeticionHasta||""} onChange={e=>fv("repeticionHasta",e.target.value)} min={form.fecha} style={S.inp}/></div>}
           <div style={S.fg}><label style={S.lbl}>Precio alquiler</label><input type="number" value={form.monto} onChange={e=>fv("monto",e.target.value)} style={{...S.inp,fontWeight:700,color:"var(--bronze)"}}/></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
@@ -356,15 +353,15 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   </>);
 }
 function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
- const [paso,setPaso]=useState(1);
-  const [modoPublico,setModoPublico]=useState("fecha");
+  const [paso,setPaso]=useState(1);
   const [calMes,setCalMes]=useState({y:hoy.getFullYear(),m:hoy.getMonth()});
+  const [modoPublico,setModoPublico]=useState("fecha");
+  const [filtroEquipoPublico,setFiltroEquipoPublico]=useState(null);
+  const [filtroComboPublico,setFiltroComboPublico]=useState(null);
   const [selDay,setSelDay]=useState(null);
   const [selEquipo,setSelEquipo]=useState(null);
   const [selCombo,setSelCombo]=useState(null);
   const [usarCombo,setUsarCombo]=useState(false);
-  const [filtroEquipoPublico,setFiltroEquipoPublico]=useState(null);
-  const [filtroComboPublico,setFiltroComboPublico]=useState(null);
   const [enviando,setEnviando]=useState(false);
   const [pf,setPf]=useState({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});
   const upd=(k,v)=>setPf(f=>({...f,[k]:v}));
@@ -423,7 +420,12 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
         <button onClick={onVolver} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".8rem",padding:".25rem .65rem",borderRadius:6,cursor:"pointer"}}>Inicio</button>
       </div>
       <div style={{padding:"1rem",maxWidth:540,margin:"0 auto"}}>
-        {paso===1&&(<>           <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",background:"rgba(255,255,255,.08)",borderRadius:10,padding:".3rem"}}>             <button onClick={()=>{setModoPublico("fecha");setFiltroEquipoPublico(null);setFiltroComboPublico(null);}} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="fecha"?"var(--bronze)":"transparent",color:modoPublico==="fecha"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por fecha</button>             <button onClick={()=>setModoPublico("equipo")} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="equipo"?"var(--bronze)":"transparent",color:modoPublico==="equipo"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por equipo</button>           </div>           {modoPublico==="fecha"&&(<><>
+        {paso===1&&(<>
+          <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",background:"rgba(255,255,255,.08)",borderRadius:10,padding:".3rem"}}>
+            <button onClick={()=>{setModoPublico("fecha");setFiltroEquipoPublico(null);setFiltroComboPublico(null);}} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="fecha"?"var(--bronze)":"transparent",color:modoPublico==="fecha"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por fecha</button>
+            <button onClick={()=>setModoPublico("equipo")} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="equipo"?"var(--bronze)":"transparent",color:modoPublico==="equipo"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por equipo</button>
+          </div>
+          {modoPublico==="fecha"&&(<>
           <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí una fecha</div>
           <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Toca un dia para ver que equipos estan libres</div>
           <div style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--sand)"}}>
@@ -454,8 +456,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
           {modoPublico==="equipo"&&(<>
             <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí un equipo</div>
             <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Seleccioná para ver los días disponibles en el calendario</div>
-            {combosLibres.length>0&&<div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>Combos</div>}
-            {combos.map(c=><div key={c.id} onClick={()=>{setFiltroComboPublico(c);setFiltroEquipoPublico(null);}} style={{background:filtroComboPublico?.id===c.id?"rgba(176,125,78,.15)":"#fff",border:"2px solid "+(filtroComboPublico?.id===c.id?"var(--bronze)":"#E5DDD4"),borderRadius:12,padding:".9rem 1rem",marginBottom:".5rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:".95rem"}}>{c.nombre}</div><div style={{fontSize:".75rem",color:"var(--mid)"}}>{c.equipoIds.map(id=>{const e=equipos.find(x=>x.id===id);return e?e.nombre:id;}).join(" + ")}</div></div><div style={{fontWeight:700,color:"var(--bronze)"}}>${c.precio.toLocaleString()}</div></div>)}
+            {combos.length>0&&<><div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>Combos</div>
+            {combos.map(c=><div key={c.id} onClick={()=>{setFiltroComboPublico(c);setFiltroEquipoPublico(null);}} style={{background:filtroComboPublico?.id===c.id?"rgba(176,125,78,.15)":"#fff",border:"2px solid "+(filtroComboPublico?.id===c.id?"var(--bronze)":"#E5DDD4"),borderRadius:12,padding:".9rem 1rem",marginBottom:".5rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:".95rem"}}>{c.nombre}</div><div style={{fontSize:".75rem",color:"var(--mid)"}}>{c.equipoIds.map(id=>{const e=equipos.find(x=>x.id===id);return e?e.nombre:id;}).join(" + ")}</div></div><div style={{fontWeight:700,color:"var(--bronze)"}}>${c.precio.toLocaleString()}</div></div>)}</>}
             <div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem",marginTop:".8rem"}}>Equipos individuales</div>
             {equipos.map(e=>{const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);const pr=p?Math.round(e.precio*(1-p.descuento/100)):e.precio;const sel=filtroEquipoPublico?.id===e.id;return<div key={e.id} onClick={()=>{setFiltroEquipoPublico(e);setFiltroComboPublico(null);}} style={{background:sel?"rgba(176,125,78,.15)":"#fff",border:"2px solid "+(sel?"var(--bronze)":"#E5DDD4"),borderRadius:12,padding:".9rem 1rem",marginBottom:".5rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:".95rem"}}>{e.emoji} {e.nombre}</div>{p&&<span style={{fontSize:".7rem",background:"#EDE9FE",color:"#4C1D95",borderRadius:99,padding:".1rem .4rem",fontWeight:700}}>PROMO -{p.descuento}%</span>}</div><div style={{fontWeight:700,color:"var(--bronze)"}}>${pr.toLocaleString()}</div></div>;})}
             {(filtroEquipoPublico||filtroComboPublico)&&(<>
@@ -468,9 +470,9 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--sand)"}}>
                   {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
-                  {(()=>{const{y,m}=calMes,p=new Date(y,m,1),u=new Date(y,m+1,0),c=[];for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);c.push({date:fmt(d),day:d.getDate(),other:true});}for(let d=1;d<=u.getDate();d++)c.push({date:fmt(new Date(y,m,d)),day:d,other:false});while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}return c;})().map((c,i)=>{
-                    const eId=filtroEquipoPublico?.id;const cId=filtroComboPublico?.id;
-                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):cId?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos)):true;
+                  {(()=>{const{y,m}=calMes,p=new Date(y,m,1),u=new Date(y,m+1,0),cells=[];for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}for(let d=1;d<=u.getDate();d++)cells.push({date:fmt(new Date(y,m,d)),day:d,other:false});while(cells.length%7!==0){const d=new Date(y,m+1,cells.length-u.getDate()-p.getDay()+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}return cells;})().map((c,i)=>{
+                    const eId=filtroEquipoPublico?.id;
+                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):filtroComboPublico?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos)):true;
                     const esPasado=c.date<fmtHoy;const isToday=c.date===fmtHoy;const isSel=c.date===selDay;
                     return<div key={i} onClick={()=>{if(c.other||esPasado)return;if(libre){setSelDay(c.date);setSelEquipo(filtroEquipoPublico);setSelCombo(filtroComboPublico);setUsarCombo(!!filtroComboPublico);setPaso(3);}}} style={{background:isSel?"rgba(176,125,78,.2)":isToday?"rgba(176,125,78,.1)":"#fff",minHeight:64,padding:".3rem .28rem",cursor:(esPasado||c.other)?"default":libre?"pointer":"not-allowed",opacity:c.other||esPasado?.35:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
                       <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday||isSel?"var(--bronze)":"transparent",color:isToday||isSel?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
@@ -485,8 +487,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
               </div>
             </>)}
           </>)}
-        </>
-        {paso===2&&(<>
+        </>)}{paso===2&&(<>
           <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:"1rem 0 .8rem"}}>
             <button onClick={()=>{setPaso(1);setSelDay(null);}} style={{background:"none",border:"1px solid #555",color:"#aaa",borderRadius:8,padding:".3rem .7rem",cursor:"pointer",fontSize:".85rem"}}>←</button>
             <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.15rem"}}>{fmtFull(selDay)} — Elegí un equipo</div>
@@ -558,7 +559,7 @@ function SeccionMantenimiento({equipos,reservas,combos,showToast,S}){
   };
   const contarDesdeUltimo=(eId)=>{
     const ultimo=mantenimientos.filter(m=>m.equipo_id===eId).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
-const eq=equipos.find(e=>e.id===eId);
+    const eq=equipos.find(e=>e.id===eId);
     const maquinaId=eq?.maquinaId||null;
     const combinados=maquinaId?equipos.filter(e=>e.maquinaId===maquinaId&&e.esCombinado).map(e=>e.id):[];
     const tieneEquipo=r=>{
@@ -567,9 +568,9 @@ const eq=equipos.find(e=>e.id===eId);
       if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||combinados.includes(id)))return true;}
       return false;
     };
-    const fmtHoy=fmt(hoy);
-    if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha<=fmtHoy).length;
-    return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha&&r.fecha<=fmtHoy).length;
+    const fmtHoy2=fmt(hoy);
+    if(!ultimo)return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha<=fmtHoy2).length;
+    return reservas.filter(r=>tieneEquipo(r)&&r.estado!=="cancelado"&&r.fecha>=ultimo.fecha&&r.fecha<=fmtHoy2).length;
   };
   if(loading)return<div style={{textAlign:"center",padding:"2rem",color:"var(--mid)"}}>Cargando...</div>;
   return(<>
@@ -579,7 +580,7 @@ const eq=equipos.find(e=>e.id===eId);
       <div style={S.fg}><label style={S.lbl}>Equipo</label>
         <select value={form.equipoId} onChange={e=>setForm(f=>({...f,equipoId:e.target.value}))} style={S.inp}>
           <option value="">Seleccioná equipo</option>
-          {equipos.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
+          {equipos.filter(e=>!e.esCombinado).map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
         </select>
       </div>
       <div style={S.fg}><label style={S.lbl}>Trabajo realizado</label>
@@ -683,7 +684,8 @@ function App(){
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
     if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30,esCombinado:e.es_combinado||false})));
-    if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}     if(resM.data)setMantenimientos(resM.data);
+    if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
+    if(resM.data)setMantenimientos(resM.data);
   };
 
   const intentarLogin=key=>{
@@ -713,7 +715,9 @@ function App(){
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
     const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
-    const recs=genRecs(base,form.repeticion,12,form.repeticionHasta||"");     const todas=[base,...recs];     if(form.repeticion==="diaria"){       const conflictos=todas.filter(r=>!form.usarCombo&&tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos));       if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}     }
+    const recs=genRecs(base,form.repeticion,12,form.repeticionHasta||"");
+    const todas=[base,...recs];
+    if(form.repeticion==="diaria"){const conflictos=todas.filter(r=>!form.usarCombo&&tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos));if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
@@ -1058,19 +1062,19 @@ function App(){
           {alertas.map(a=><div key={a.id} style={{background:"#FFFBEB",border:"1.5px solid var(--gold)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#713F12",marginBottom:".6rem"}}>Mañana: {a.clienteNombre} — {IL(a)}</div>)}
           {equipos.filter(e=>{
             if(e.esCombinado)return false;
-            const fmtHoy=fmt(hoy);
+            const fmtH=fmt(hoy);
             const maquinaId=e.maquinaId||null;
             const combinados=maquinaId?equipos.filter(x=>x.maquinaId===maquinaId&&x.esCombinado).map(x=>x.id):[];
             const ultimoMant=mantenimientos.filter(m=>m.equipo_id===e.id).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
             const desdeF=ultimoMant?ultimoMant.fecha:"0000-00-00";
             const cant=reservas.filter(r=>{
-              if(r.estado==="cancelado"||r.fecha>fmtHoy||r.fecha<desdeF)return false;
+              if(r.estado==="cancelado"||r.fecha>fmtH||r.fecha<desdeF)return false;
               if(r.equipoId===e.id)return true;
               if(combinados.includes(r.equipoId))return true;
               if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===e.id||combinados.includes(id)))return true;}
               return false;
             }).length;
-            return cant>0&&cant>=(e.alertaMantenimiento||30);
+            return cant>=(e.alertaMantenimiento||30);
           }).map(e=>(
             <div key={e.id} style={{background:"#FEE2E2",border:"1.5px solid var(--red)",borderRadius:10,padding:".6rem .9rem",fontSize:".85rem",color:"#7F1D1D",marginBottom:".6rem"}}>
               {e.emoji} {e.nombre} — Mantenimiento requerido
@@ -1388,7 +1392,7 @@ function App(){
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>{r.clienteNombre}</span>
                   <span>{fmtVis(r.fecha)} · {r.horaEntrega||"—"} · {r.horaRetiro||"—"}</span>
-                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}                   <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".88rem"}}>Alquiler: ${r.monto.toLocaleString()}{r.senia>0?` (seña: $${r.senia.toLocaleString()})`:""}</span>
+                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}
                 </div>
                 <div style={{display:"flex",gap:".4rem",marginTop:".7rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
