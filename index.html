@@ -71,8 +71,13 @@ const semLabel=l=>{const d=addD(l,6);return`${l.getDate()} ${MESES[l.getMonth()]
 const mesKey=d=>`${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}`;
 const estadoLabel=e=>({aceptada:"Aceptada",sena:"Con seña",activo:"Activo",completado:"Completado",cancelado:"Cancelado",pendiente:"Pendiente"})[e]||e;
 const genId=()=>Date.now()+Math.floor(Math.random()*1000);
-const genRecs=(base,rep,cant=12)=>{
+const genRecs=(base,rep,cant=12,hasta="")=>{
   if(!rep||rep==="none")return[];
+  if(rep==="diaria"&&hasta){
+    const result=[];let d=addD(new Date(base.fecha+"T12:00"),1);const fin=new Date(hasta+"T12:00");
+    while(d<=fin){result.push({...base,id:genId(),fecha:fmt(d),senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id});d=addD(d,1);}
+    return result;
+  }
   return Array.from({length:cant},(_,i)=>{
     let f;
     if(rep==="semanal")f=fmt(addD(new Date(base.fecha+"T12:00"),(i+1)*7));
@@ -81,7 +86,7 @@ const genRecs=(base,rep,cant=12)=>{
     return{...base,id:genId(),fecha:f,senia:0,estado:"aceptada",esRecurrencia:true,serieId:base.id};
   });
 };
-const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
+  const getColors=(r,combos)=>{if(r.comboId){const c=combos.find(x=>x.id===r.comboId);return c?c.equipoIds.map(id=>eqColor(id)):["#888"];}return r.equipoId?[eqColor(r.equipoId)]:["#888"];};
 const iLabel=(r,combos,equipos)=>{if(r.comboId){const c=combos?.find(x=>x.id===r.comboId);return c?`${c.nombre}`:"Combo";}const e=equipos.find(x=>x.id===r.equipoId);return e?`${e.emoji} ${e.nombre}`:"—";};
 const toDb=r=>({id:r.id,cliente_nombre:r.clienteNombre,cliente_email:r.clienteEmail||"",cliente_tel:r.clienteTel||"",equipo_id:r.equipoId||null,combo_id:r.comboId||null,fecha:r.fecha,hora_entrega:r.horaEntrega||"",hora_retiro:r.horaRetiro||"",estado:r.estado,monto:r.monto,senia:r.senia||0,direccion:r.direccion||"",localidad:r.localidad||"",tarifa_transporte:r.tarifaTransporte??0,repeticion:r.repeticion||"none",es_recurrencia:r.esRecurrencia||false,serie_id:r.serieId||null,cancel_tipo:r.cancelTipo||null,observaciones:r.observaciones||""});
 const fromDb=r=>({id:r.id,clienteNombre:r.cliente_nombre,clienteEmail:r.cliente_email,clienteTel:r.cliente_tel,equipoId:r.equipo_id,comboId:r.combo_id,fecha:r.fecha,horaEntrega:r.hora_entrega,horaRetiro:r.hora_retiro,estado:r.estado,monto:r.monto,senia:r.senia,direccion:r.direccion,localidad:r.localidad||"",tarifaTransporte:r.tarifa_transporte,repeticion:r.repeticion,esRecurrencia:r.es_recurrencia,serieId:r.serie_id,cancelTipo:r.cancel_tipo,observaciones:r.observaciones||""});
@@ -174,7 +179,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
         }
         <div style={S.fg}><label style={S.lbl}>Observaciones</label><textarea value={form.observaciones||""} onChange={e=>fv("observaciones",e.target.value)} placeholder="Notas internas sobre esta reserva..." rows={2} style={{...S.inp,resize:"vertical",fontFamily:"'DM Sans',sans-serif"}}/></div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
-          <div style={S.fg}><label style={S.lbl}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={S.inp}/></div>
+          <div style={S.fg}><label style={S.lbl}>Fecha</label><input type="date" value={form.fecha} onChange={e=>fv("fecha",e.target.value)} style={S.inp}/></div>         {form.repeticion==="diaria"&&<div style={S.fg}><label style={S.lbl}>Repetir hasta</label><input type="date" value={form.repeticionHasta||""} onChange={e=>fv("repeticionHasta",e.target.value)} min={form.fecha} style={S.inp}/></div>}
           <div style={S.fg}><label style={S.lbl}>Precio alquiler</label><input type="number" value={form.monto} onChange={e=>fv("monto",e.target.value)} style={{...S.inp,fontWeight:700,color:"var(--bronze)"}}/></div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
@@ -198,6 +203,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
         <div style={S.fg}><label style={S.lbl}>Repetición</label>
           <select value={form.repeticion} onChange={e=>fv("repeticion",e.target.value)} style={S.inp}>
             <option value="none">Sin repetición</option>
+            <option value="diaria">Diaria (rango de fechas)</option>
             <option value="semanal">Semanal (12 sem.)</option>
             <option value="quincenal">Quincenal (12)</option>
             <option value="mensual">Mensual (12 mes.)</option>
@@ -622,7 +628,7 @@ function App(){
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:"",grupoTarifa:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
-  const FDEF={clienteNombre:"",clienteApellido:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",localidad:"",tarifaTransporte:"",repeticion:"none",observaciones:""};
+  const FDEF={clienteNombre:"",clienteApellido:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",localidad:"",tarifaTransporte:"",repeticion:"none",observaciones:"",repeticionHasta:""};
   const [form,setForm]=useState(FDEF);
   const fv=useCallback((k,v)=>setForm(f=>({...f,[k]:v})),[]);
 
@@ -669,7 +675,7 @@ function App(){
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
     const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
-    const todas=[base,...genRecs(base,form.repeticion,12)];
+    const todas=[base,...genRecs(base,form.repeticion,12,form.repeticionHasta||"")];
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
