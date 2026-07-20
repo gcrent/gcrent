@@ -356,12 +356,15 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   </>);
 }
 function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
-  const [paso,setPaso]=useState(1);
+ const [paso,setPaso]=useState(1);
+  const [modoPublico,setModoPublico]=useState("fecha");
   const [calMes,setCalMes]=useState({y:hoy.getFullYear(),m:hoy.getMonth()});
   const [selDay,setSelDay]=useState(null);
   const [selEquipo,setSelEquipo]=useState(null);
   const [selCombo,setSelCombo]=useState(null);
   const [usarCombo,setUsarCombo]=useState(false);
+  const [filtroEquipoPublico,setFiltroEquipoPublico]=useState(null);
+  const [filtroComboPublico,setFiltroComboPublico]=useState(null);
   const [enviando,setEnviando]=useState(false);
   const [pf,setPf]=useState({nombre:"",apellido:"",tel:"",direccion:"",localidad:"",senia:""});
   const upd=(k,v)=>setPf(f=>({...f,[k]:v}));
@@ -420,7 +423,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
         <button onClick={onVolver} style={{background:"none",border:"1px solid #555",color:"#aaa",fontSize:".8rem",padding:".25rem .65rem",borderRadius:6,cursor:"pointer"}}>Inicio</button>
       </div>
       <div style={{padding:"1rem",maxWidth:540,margin:"0 auto"}}>
-        {paso===1&&(<>
+        {paso===1&&(<>           <div style={{display:"flex",gap:".5rem",marginBottom:"1rem",background:"rgba(255,255,255,.08)",borderRadius:10,padding:".3rem"}}>             <button onClick={()=>{setModoPublico("fecha");setFiltroEquipoPublico(null);setFiltroComboPublico(null);}} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="fecha"?"var(--bronze)":"transparent",color:modoPublico==="fecha"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por fecha</button>             <button onClick={()=>setModoPublico("equipo")} style={{flex:1,padding:".55rem",borderRadius:8,border:"none",background:modoPublico==="equipo"?"var(--bronze)":"transparent",color:modoPublico==="equipo"?"#fff":"#9A8A7A",fontFamily:"'DM Sans',sans-serif",fontSize:".85rem",fontWeight:600,cursor:"pointer"}}>Por equipo</button>           </div>           {modoPublico==="fecha"&&(<><>
           <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí una fecha</div>
           <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Toca un dia para ver que equipos estan libres</div>
           <div style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--sand)"}}>
@@ -447,7 +450,42 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
             <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"var(--gold)",marginRight:4}}/>Parcial</span>
             <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"#ccc",marginRight:4}}/>Sin disponibilidad</span>
           </div>
-        </>)}
+          </>)}
+          {modoPublico==="equipo"&&(<>
+            <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.3rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Elegí un equipo</div>
+            <div style={{color:"#9A8A7A",fontSize:".82rem",textAlign:"center",marginBottom:"1rem"}}>Seleccioná para ver los días disponibles en el calendario</div>
+            {combosLibres.length>0&&<div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem"}}>Combos</div>}
+            {combos.map(c=><div key={c.id} onClick={()=>{setFiltroComboPublico(c);setFiltroEquipoPublico(null);}} style={{background:filtroComboPublico?.id===c.id?"rgba(176,125,78,.15)":"#fff",border:"2px solid "+(filtroComboPublico?.id===c.id?"var(--bronze)":"#E5DDD4"),borderRadius:12,padding:".9rem 1rem",marginBottom:".5rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:".95rem"}}>{c.nombre}</div><div style={{fontSize:".75rem",color:"var(--mid)"}}>{c.equipoIds.map(id=>{const e=equipos.find(x=>x.id===id);return e?e.nombre:id;}).join(" + ")}</div></div><div style={{fontWeight:700,color:"var(--bronze)"}}>${c.precio.toLocaleString()}</div></div>)}
+            <div style={{color:"#C0A88A",fontSize:".75rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em",marginBottom:".5rem",marginTop:".8rem"}}>Equipos individuales</div>
+            {equipos.map(e=>{const p=promos.find(pr=>pr.activa&&pr.equipoId===e.id);const pr=p?Math.round(e.precio*(1-p.descuento/100)):e.precio;const sel=filtroEquipoPublico?.id===e.id;return<div key={e.id} onClick={()=>{setFiltroEquipoPublico(e);setFiltroComboPublico(null);}} style={{background:sel?"rgba(176,125,78,.15)":"#fff",border:"2px solid "+(sel?"var(--bronze)":"#E5DDD4"),borderRadius:12,padding:".9rem 1rem",marginBottom:".5rem",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div style={{fontWeight:700,fontSize:".95rem"}}>{e.emoji} {e.nombre}</div>{p&&<span style={{fontSize:".7rem",background:"#EDE9FE",color:"#4C1D95",borderRadius:99,padding:".1rem .4rem",fontWeight:700}}>PROMO -{p.descuento}%</span>}</div><div style={{fontWeight:700,color:"var(--bronze)"}}>${pr.toLocaleString()}</div></div>;})}
+            {(filtroEquipoPublico||filtroComboPublico)&&(<>
+              <div style={{color:"var(--cream)",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",margin:"1rem 0 .4rem",textAlign:"center"}}>Disponibilidad de {filtroEquipoPublico?filtroEquipoPublico.nombre:filtroComboPublico.nombre}</div>
+              <div style={{background:"#fff",borderRadius:14,overflow:"hidden",border:"1px solid var(--sand)"}}>
+                <div style={{background:"var(--dark)",color:"var(--cream)",padding:".7rem 1rem",display:"flex",alignItems:"center",justifyContent:"space-between",borderBottom:"1px solid #333"}}>
+                  <button onClick={()=>setCalMes(c=>({y:c.m===0?c.y-1:c.y,m:c.m===0?11:c.m-1}))} style={{background:"none",border:"1px solid #555",color:"#ccc",borderRadius:6,padding:".2rem .5rem",cursor:"pointer"}}>‹</button>
+                  <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>{MESES[calMes.m]} {calMes.y}</span>
+                  <button onClick={()=>setCalMes(c=>({y:c.m===11?c.y+1:c.y,m:c.m===11?0:c.m+1}))} style={{background:"none",border:"1px solid #555",color:"#ccc",borderRadius:6,padding:".2rem .5rem",cursor:"pointer"}}>›</button>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1,background:"var(--sand)"}}>
+                  {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
+                  {(()=>{const{y,m}=calMes,p=new Date(y,m,1),u=new Date(y,m+1,0),c=[];for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);c.push({date:fmt(d),day:d.getDate(),other:true});}for(let d=1;d<=u.getDate();d++)c.push({date:fmt(new Date(y,m,d)),day:d,other:false});while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}return c;})().map((c,i)=>{
+                    const eId=filtroEquipoPublico?.id;const cId=filtroComboPublico?.id;
+                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):cId?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos)):true;
+                    const esPasado=c.date<fmtHoy;const isToday=c.date===fmtHoy;const isSel=c.date===selDay;
+                    return<div key={i} onClick={()=>{if(c.other||esPasado)return;if(libre){setSelDay(c.date);setSelEquipo(filtroEquipoPublico);setSelCombo(filtroComboPublico);setUsarCombo(!!filtroComboPublico);setPaso(3);}}} style={{background:isSel?"rgba(176,125,78,.2)":isToday?"rgba(176,125,78,.1)":"#fff",minHeight:64,padding:".3rem .28rem",cursor:(esPasado||c.other)?"default":libre?"pointer":"not-allowed",opacity:c.other||esPasado?.35:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
+                      <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday||isSel?"var(--bronze)":"transparent",color:isToday||isSel?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
+                      {!esPasado&&!c.other&&<div style={{marginTop:3,display:"flex",justifyContent:"center"}}><div style={{width:8,height:8,borderRadius:"50%",background:libre?"var(--green)":"var(--red)"}}/></div>}
+                    </div>;
+                  })}
+                </div>
+              </div>
+              <div style={{display:"flex",gap:"1rem",justifyContent:"center",marginTop:".8rem",fontSize:".78rem",color:"#9A8A7A"}}>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"var(--green)",marginRight:4}}/>Disponible</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:"50%",background:"var(--red)",marginRight:4}}/>Ocupado</span>
+              </div>
+            </>)}
+          </>)}
+        </>
         {paso===2&&(<>
           <div style={{display:"flex",alignItems:"center",gap:".6rem",margin:"1rem 0 .8rem"}}>
             <button onClick={()=>{setPaso(1);setSelDay(null);}} style={{background:"none",border:"1px solid #555",color:"#aaa",borderRadius:8,padding:".3rem .7rem",cursor:"pointer",fontSize:".85rem"}}>←</button>
