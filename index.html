@@ -1221,16 +1221,15 @@ function App(){
             ))}
           </div>
           {(()=>{
-            const hoyDate=new Date();
-            const mesActual=hoyDate.getMonth(),anioActual=hoyDate.getFullYear();
-            const mesPrev=mesActual===0?11:mesActual-1;
-            const anioPrev=mesActual===0?anioActual-1:anioActual;
-            const mesNext=mesActual===11?0:mesActual+1;
-            const anioNext=mesActual===11?anioActual+1:anioActual;
-            const keyActual=anioActual+"-"+String(mesActual+1).padStart(2,"0");
-            const keyPrev=anioPrev+"-"+String(mesPrev+1).padStart(2,"0");
-            const keyNext=anioNext+"-"+String(mesNext+1).padStart(2,"0");
-            const resActual=reservas.filter(r=>mesKey(r.fecha)===keyActual&&r.estado!=="cancelado");
+            const keySeleccionado=filtroMesMetricas;
+            const[anioSel,mesSel]=[+keySeleccionado.split("-")[0],+keySeleccionado.split("-")[1]-1];
+            const mesNextN=mesSel===11?0:mesSel+1;
+            const anioNextN=mesSel===11?anioSel+1:anioSel;
+            const keyNext=anioNextN+"-"+String(mesNextN+1).padStart(2,"0");
+            const mesPrevN=mesSel===0?11:mesSel-1;
+            const anioPrevN=mesSel===0?anioSel-1:anioSel;
+            const keyPrev=anioPrevN+"-"+String(mesPrevN+1).padStart(2,"0");
+            const resActual=reservas.filter(r=>mesKey(r.fecha)===keySeleccionado&&r.estado!=="cancelado");
             const resPrev=reservas.filter(r=>mesKey(r.fecha)===keyPrev&&r.estado!=="cancelado");
             const resNext=reservas.filter(r=>mesKey(r.fecha)===keyNext&&r.estado!=="cancelado");
             const forecast=resActual.reduce((a,r)=>a+r.monto,0);
@@ -1241,7 +1240,7 @@ function App(){
             return(
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:"1rem",marginBottom:"1.2rem"}}>
                 <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:"1rem 1.2rem",borderLeft:"4px solid var(--blue)"}}>
-                  <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>Forecast mes actual</div>
+                  <div style={{fontSize:".72rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:".2rem"}}>Forecast mes seleccionado</div>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"2rem",color:"var(--dark)"}}>${forecast.toLocaleString()}</div>
                   <div style={{display:"flex",alignItems:"center",gap:".4rem",marginTop:".2rem"}}>
                     {pct!==null&&<span style={{fontSize:".8rem",fontWeight:700,color:mejor?"var(--green)":"var(--red)"}}>{mejor?"↑":"↓"} {Math.abs(pct)}% vs mes anterior</span>}
