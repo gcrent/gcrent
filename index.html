@@ -1229,8 +1229,9 @@ function App(){
             const mesPrevN=mesSel===0?11:mesSel-1;
             const anioPrevN=mesSel===0?anioSel-1:anioSel;
             const keyPrev=anioPrevN+"-"+String(mesPrevN+1).padStart(2,"0");
-            const resActual=reservas.filter(r=>mesKey(r.fecha)===keySeleccionado&&r.estado!=="cancelado");
-            const resPrev=reservas.filter(r=>mesKey(r.fecha)===keyPrev&&r.estado!=="cancelado");
+            const fmtHoyStr=fmt(hoy);
+            const resActual=reservas.filter(r=>mesKey(r.fecha)===keySeleccionado&&r.estado!=="cancelado"&&r.fecha<=fmtHoyStr);
+            const resPrev=reservas.filter(r=>mesKey(r.fecha)===keyPrev&&r.estado!=="cancelado"&&r.fecha<=fmtHoyStr);
             const resNext=reservas.filter(r=>mesKey(r.fecha)===keyNext&&r.estado!=="cancelado");
             const forecast=resActual.reduce((a,r)=>a+r.monto,0);
             const montoPrev=resPrev.reduce((a,r)=>a+r.monto,0);
@@ -1391,7 +1392,9 @@ function App(){
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>{r.clienteNombre}</span>
                   <span>{fmtVis(r.fecha)} · {r.horaEntrega||"—"} · {r.horaRetiro||"—"}</span>
-                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}
+                  <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>
+                  {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}
+                  <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".88rem"}}>Alquiler: ${r.monto.toLocaleString()}{r.senia>0?` (seña: $${r.senia.toLocaleString()})`:""}</span>
                 </div>
                 <div style={{display:"flex",gap:".4rem",marginTop:".7rem",flexWrap:"wrap"}}>
                   {r.estado==="aceptada"&&btn("Entregado",()=>cambiarEstado(r.id,"activo"),"var(--blue)")}
