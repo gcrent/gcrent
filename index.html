@@ -68,7 +68,7 @@ const MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","
 const DIAS=["Dom","Lun","Mar","Mié","Jue","Vie","Sab"];
 const getLunes=d=>{const r=new Date(d);r.setDate(r.getDate()-(r.getDay()||7)+1);r.setHours(0,0,0,0);return r;};
 const semLabel=l=>{const d=addD(l,6);return`${l.getDate()} ${MESES[l.getMonth()].slice(0,3)} - ${d.getDate()} ${MESES[d.getMonth()].slice(0,3)}`;};
-const mesKey=d=>`${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}`;
+const mesKey=d=>{const s=String(d);return s.slice(0,7);};
 const estadoLabel=e=>({aceptada:"Aceptada",sena:"Con seña",activo:"Activo",completado:"Completado",cancelado:"Cancelado",pendiente:"Pendiente"})[e]||e;
 const genId=()=>Date.now()+Math.floor(Math.random()*1000);
 const genRecs=(base,rep,cant=12,hasta="")=>{
