@@ -679,7 +679,7 @@ function App(){
   const pendientes=useMemo(()=>reservas.filter(r=>r.estado==="pendiente"),[reservas]);
 
   const cargarDatos=async()=>{
-    const[resR,resC,resP,resE,resT,resM]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("id"),supa.from("tarifas").select("*"),supa.from("mantenimientos").select("*").order("fecha",{ascending:false})]);
+    const[resR,resC,resP,resE,resT,resM]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("orden"),supa.from("tarifas").select("*"),supa.from("mantenimientos").select("*").order("fecha",{ascending:false})]);
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
