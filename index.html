@@ -91,7 +91,7 @@ const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,eq
 const pToDb=p=>({id:p.id,equipo_id:p.equipoId,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 
-function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId){
+function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos){
   const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
   const hE=horaEntrega||"00:00",hR=horaRetiro||"23:59";
@@ -99,10 +99,11 @@ function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
     if(excludeId!=null&&String(r.id)===String(excludeId))continue;
-    if(parseInt(String(r.equipoId),10)!==eId)continue;
     if(String(r.fecha)!==String(fecha))continue;
     const rE=r.horaEntrega||"00:00",rR=r.horaRetiro||"23:59";
-    if(hE<rR&&hR>rE)return true;
+    if(!(hE<rR&&hR>rE))continue;
+    if(parseInt(String(r.equipoId),10)===eId)return true;
+    if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(eId))return true;}
   }
   return false;
 }
