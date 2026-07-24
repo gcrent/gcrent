@@ -717,7 +717,7 @@ function App(){
     const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
     const recs=genRecs(base,form.repeticion,12,form.repeticionHasta||"");
     const todas=[base,...recs];
-    if(form.repeticion==="diaria"){const conflictos=todas.filter(r=>!form.usarCombo&&tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos));if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
+    if(form.repeticion!=="none"&&!form.usarCombo){const conflictos=todas.filter(r=>tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos));if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
