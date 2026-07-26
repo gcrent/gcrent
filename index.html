@@ -152,7 +152,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
           <div style={S.fg}>
             <label style={S.lbl}>Nombre</label>
             <div style={{position:"relative"}}>
-              <input value={form.clienteNombre} onChange={e=>fv("clienteNombre",e.target.value)} placeholder="María" style={S.inp}/>
+              <input value={form.clienteNombre} onChange={e=>fv("clienteNombre",e.target.value.toUpperCase())} placeholder="MARÍA" style={S.inp}/>
               {sugerencias.length>0&&(
                 <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1.5px solid var(--bronze)",borderRadius:8,zIndex:50,boxShadow:"0 4px 16px rgba(0,0,0,.12)",overflow:"hidden"}}>
                   {sugerencias.map(r=>(
@@ -165,9 +165,9 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
               )}
             </div>
           </div>
-          <div style={S.fg}><label style={S.lbl}>Apellido</label><input value={form.clienteApellido||""} onChange={e=>fv("clienteApellido",e.target.value)} placeholder="González" style={S.inp}/></div>
+          <div style={S.fg}><label style={S.lbl}>Apellido</label><input value={form.clienteApellido||""} onChange={e=>fv("clienteApellido",e.target.value.toUpperCase())} placeholder="GONZÁLEZ" style={S.inp}/></div>
         </div>
-        <div style={S.fg}><label style={S.lbl}>Teléfono</label><input value={form.clienteTel} onChange={e=>fv("clienteTel",e.target.value)} placeholder="5491122334455" style={S.inp}/></div>
+        <div style={S.fg}><label style={S.lbl}>Teléfono</label><input value={form.clienteTel} onChange={e=>fv("clienteTel",e.target.value.replace(/^0+/,"").replace(/\D/g,""))} placeholder="3624123456" style={S.inp}/></div>
         <div style={S.fg}><label style={S.lbl}>Instagram</label><input type="text" value={form.clienteEmail} onChange={e=>fv("clienteEmail",e.target.value)} placeholder="@usuario" style={S.inp}/></div>
         <div style={S.fg}><label style={{display:"flex",alignItems:"center",gap:".4rem",fontSize:".95rem",color:"var(--dark)",cursor:"pointer"}}><input type="checkbox" checked={form.usarCombo} onChange={e=>fv("usarCombo",e.target.checked)}/> Reservar un combo</label></div>
         {form.usarCombo
@@ -509,9 +509,9 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"var(--gold)",marginTop:".3rem"}}>${precio.toLocaleString()}</div>
           </div>
           <div style={{background:"#fff",borderRadius:14,padding:"1.2rem"}}>
-            <div style={S.fg}><label style={S.lbl}>Tu nombre *</label><input value={pf.nombre} onChange={e=>upd("nombre",e.target.value)} placeholder="María José" style={S.inp}/></div>
-            <div style={S.fg}><label style={S.lbl}>Tu apellido *</label><input value={pf.apellido||""} onChange={e=>upd("apellido",e.target.value)} placeholder="González" style={S.inp}/></div>
-            <div style={S.fg}><label style={S.lbl}>WhatsApp *</label><input value={pf.tel} onChange={e=>upd("tel",e.target.value)} placeholder="3624123456" style={S.inp}/></div>
+            <div style={S.fg}><label style={S.lbl}>Tu nombre *</label><input value={pf.nombre} onChange={e=>upd("nombre",e.target.value.toUpperCase())} placeholder="María José" style={S.inp}/></div>
+            <div style={S.fg}><label style={S.lbl}>Tu apellido *</label><input value={pf.apellido||""} onChange={e=>upd("apellido",e.target.value.toUpperCase())} placeholder="González" style={S.inp}/></div>
+            <div style={S.fg}><label style={S.lbl}>WhatsApp *</label><input value={pf.tel} onChange={e=>upd("tel",e.target.value.replace(/^0+/,"").replace(/\D/g,""))} placeholder="3624123456" style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Dirección</label><input value={pf.direccion} onChange={e=>upd("direccion",e.target.value)} placeholder="Av. ..." style={S.inp}/></div>
             <div style={S.fg}><label style={S.lbl}>Localidad *</label>
               <select value={pf.localidad} onChange={e=>upd("localidad",e.target.value)} style={S.inp}>
