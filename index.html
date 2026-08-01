@@ -91,13 +91,10 @@ const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,eq
 const pToDb=p=>({id:p.id,equipo_id:p.equipoId,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 
-function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos,equipos){
+function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos){
   const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
   const hE=horaEntrega||"00:00",hR=horaRetiro||"23:59";
-  const eq=equipos?.find(e=>e.id===eId);
-  const maquinaId=eq?.maquinaId||null;
-  const hermanos=maquinaId&&equipos?equipos.filter(e=>e.maquinaId===maquinaId).map(e=>e.id):[];
   for(let i=0;i<reservas.length;i++){
     const r=reservas[i];
     if(r.estado==="cancelado")continue;
@@ -106,8 +103,7 @@ function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId
     const rE=r.horaEntrega||"00:00",rR=r.horaRetiro||"23:59";
     if(!(hE<rR&&hR>rE))continue;
     if(parseInt(String(r.equipoId),10)===eId)return true;
-    if(maquinaId&&hermanos.includes(parseInt(String(r.equipoId),10)))return true;
-    if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===eId||hermanos.includes(id)))return true;}
+    if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.includes(eId))return true;}
   }
   return false;
 }
@@ -378,8 +374,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
     while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}
     return c;
   };
-  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos,equipos));},[selDay,reservas,equipos]);
-  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos,equipos)));},[selDay,reservas,combos]);
+  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos));},[selDay,reservas,equipos]);
+  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos)));},[selDay,reservas,combos]);
   const precio=useMemo(()=>{if(usarCombo&&selCombo)return selCombo.precio;if(!usarCombo&&selEquipo){const p=promos.find(pr=>pr.activa&&pr.equipoId===selEquipo.id);return p?Math.round(selEquipo.precio*(1-p.descuento/100)):selEquipo.precio;}return 0;},[selEquipo,selCombo,usarCombo,promos]);
   const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas,equipos)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
   const dotsEnFecha=date=>{
@@ -477,7 +473,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
                   {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
                   {(()=>{const{y,m}=calMes,p=new Date(y,m,1),u=new Date(y,m+1,0),cells=[];for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}for(let d=1;d<=u.getDate();d++)cells.push({date:fmt(new Date(y,m,d)),day:d,other:false});while(cells.length%7!==0){const d=new Date(y,m+1,cells.length-u.getDate()-p.getDay()+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}return cells;})().map((c,i)=>{
                     const eId=filtroEquipoPublico?.id;
-                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):filtroComboPublico?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos)):true;
+                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):filtroComboPublico?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos)):true;
                     const esPasado=c.date<fmtHoy;const isToday=c.date===fmtHoy;const isSel=c.date===selDay;
                     return<div key={i} onClick={()=>{if(c.other||esPasado)return;if(libre){setSelDay(c.date);setSelEquipo(filtroEquipoPublico);setSelCombo(filtroComboPublico);setUsarCombo(!!filtroComboPublico);setPaso(3);}}} style={{background:isSel?"rgba(176,125,78,.2)":isToday?"rgba(176,125,78,.1)":"#fff",minHeight:64,padding:".3rem .28rem",cursor:(esPasado||c.other)?"default":libre?"pointer":"not-allowed",opacity:c.other||esPasado?.35:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
                       <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday||isSel?"var(--bronze)":"transparent",color:isToday||isSel?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
@@ -722,7 +718,7 @@ function App(){
     const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
     const recs=genRecs(base,form.repeticion,12,form.repeticionHasta||"");
     const todas=[base,...recs];
-    if(form.repeticion!=="none"){const conflictos=todas.filter(r=>{if(form.usarCombo&&form.comboId){const c=combos.find(x=>x.id===form.comboId);return c&&c.equipoIds.some(id=>tieneConflicto(reservas,id,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos));}return tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos);});if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
+    if(form.repeticion!=="none"){const conflictos=todas.filter(r=>{if(form.usarCombo&&form.comboId){const c=combos.find(x=>x.id===form.comboId);return c&&c.equipoIds.some(id=>tieneConflicto(reservas,id,r.fecha,r.horaEntrega,r.horaRetiro,null,combos));}return tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos);});if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
