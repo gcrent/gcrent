@@ -251,7 +251,7 @@ function SeccionLiquidTransp({reservas,mesKey,S}){
     </div>
     <div style={{background:"var(--dark)",borderRadius:14,padding:"1.2rem",color:"var(--cream)",marginBottom:"1rem"}}>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Viajes del mes</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalViajes.toLocaleString()}</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Descuentos cobrados</span><span style={{color:"#86EFAC",fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Descuentos</span><span style={{color:"#86EFAC",fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".6rem"}}><span>Total ganado</span><span style={{fontWeight:700}}>${totalGanado.toLocaleString()}</span></div>
       <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".6rem",display:"flex",justifyContent:"space-between",fontSize:"1.3rem",fontFamily:"'Cormorant Garamond',serif"}}><span>Transferencia de GC</span><span style={{color:transferenciaGC>0?"#86EFAC":"var(--gold)",fontWeight:700}}>${transferenciaGC.toLocaleString()}</span></div>
     </div>
@@ -431,7 +431,7 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
           return(
             <div style={{background:"var(--dark)",borderRadius:10,padding:"1rem",marginTop:"1rem",color:"var(--cream)"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Viajes del mes</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalViajes.toLocaleString()}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Descuentos cobrados</span><span style={{color:"#86EFAC",fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Descuentos</span><span style={{color:"#86EFAC",fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Total ganado</span><span style={{fontWeight:700}}>${totalGanado.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".5rem"}}><span>Transferencia de GC</span></div>
               <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".5rem",display:"flex",justifyContent:"space-between",fontSize:"1.1rem",fontFamily:"'Cormorant Garamond',serif"}}><span>Transferencia de GC</span><span style={{color:transferenciaGC>0?"#86EFAC":"var(--gold)",fontWeight:700}}>${transferenciaGC.toLocaleString()}</span></div>
