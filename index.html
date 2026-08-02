@@ -1396,7 +1396,7 @@ function App(){
                 </div>
                 <div style={{fontSize:".85rem",display:"flex",flexDirection:"column",gap:".2rem"}}>
                   <span>{r.clienteNombre}</span>
-                  <span>{fmtVis(r.fecha)} · {r.horaEntrega||"—"} · {r.horaRetiro||"—"}</span>
+                  <span>{(()=>{const[y,m,d]=r.fecha.split("-");const dias=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];const meses=["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];const fecha=new Date(+y,+m-1,+d);return`${dias[fecha.getDay()]}, ${+d} de ${meses[+m-1]}`;})()}  · {r.horaEntrega||"—"} · {r.horaRetiro||"—"}</span>
                   <span>{r.direccion||""}{r.localidad?` — ${r.localidad}`:""}</span>
                   {r.observaciones&&<span style={{fontStyle:"italic",color:"var(--mid)",fontSize:".8rem"}}>"{r.observaciones}"</span>}
                   <span style={{fontWeight:700,color:"var(--bronze)",fontSize:".88rem"}}>Alquiler: ${r.monto.toLocaleString()}{r.senia>0?` (seña: $${r.senia.toLocaleString()})`:""}</span>
