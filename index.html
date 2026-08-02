@@ -242,14 +242,14 @@ function SeccionLiquidTransp({reservas,mesKey,S}){
   const totalVialesApp=reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===mesT).reduce((a,r)=>a+(r.tarifaTransporte??0),0);
   const totalDesc=gastos.reduce((a,g)=>a+(+g.monto||0),0);
   const minimo=liqTransp.minimo_transp||1200000;
-  const gcTransfiere=Math.max(0,minimo-totalVialesReal-totalDesc);
+  const totalGanado=totalVialesReal+totalDesc;const gcTransfiere=Math.max(0,minimo-totalGanado);
   return(<>
     {header}
     <div style={{background:"var(--dark)",borderRadius:14,padding:"1.2rem",color:"var(--cream)",marginBottom:"1rem"}}>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Viajes teórico (app)</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalVialesApp.toLocaleString()}</span></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Viajes real (cobrado)</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalVialesReal.toLocaleString()}</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Total descuentos</span><span style={{color:"#FCA5A5",fontWeight:700}}>-${totalDesc.toLocaleString()}</span></div>
-      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".6rem"}}><span>Garantía mínima</span><span style={{fontWeight:700}}>${minimo.toLocaleString()}</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Gastos del transportista</span><span style={{fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".6rem"}}><span>Garantía mínima</span><span style={{fontWeight:700}}>${minimo.toLocaleString()}</span></div><div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span style={{fontWeight:700}}>Total ganado</span><span style={{fontWeight:700,color:"#86EFAC"}}>${totalGanado.toLocaleString()}</span></div><div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span style={{fontWeight:700}}>Total ganado</span><span style={{fontWeight:700,color:"#86EFAC"}}>${totalGanado.toLocaleString()}</span></div>
       <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".6rem",display:"flex",justifyContent:"space-between",fontSize:"1.3rem",fontFamily:"'Cormorant Garamond',serif"}}><span>GC debe transferir</span><span style={{color:gcTransfiere>0?"#FCA5A5":"#86EFAC",fontWeight:700}}>${gcTransfiere.toLocaleString()}</span></div>
     </div>
     {totalVialesReal>0&&(
@@ -264,7 +264,7 @@ function SeccionLiquidTransp({reservas,mesKey,S}){
     )}
     {gastos.filter(g=>g.concepto||+g.monto>0).length>0&&(
       <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
-        <div style={{background:"var(--light)",padding:".75rem 1rem",fontWeight:700,fontSize:".85rem",borderBottom:"1px solid var(--sand)"}}>Descuentos aplicados</div>
+        <div style={{background:"var(--light)",padding:".75rem 1rem",fontWeight:700,fontSize:".85rem",borderBottom:"1px solid var(--sand)"}}>Gastos del transportista</div>
         {gastos.filter(g=>g.concepto||+g.monto>0).map((g,i)=>(
           <div key={i} style={{display:"flex",justifyContent:"space-between",padding:".5rem 1rem",borderBottom:"1px solid var(--sand)",fontSize:".85rem"}}>
             <span>{g.concepto||`Concepto ${i+1}`}</span>
@@ -456,13 +456,13 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
           const totalVialesApp=reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===mesLiq).reduce((a,r)=>a+(r.tarifaTransporte??0),0);
           const totalDesc=(datosLiq.gastos_transp||[]).reduce((a,g)=>a+(+g.monto||0),0);
           const minimo=datosLiq.minimo_transp||1200000;
-          const gcTransfiere=Math.max(0,minimo-totalVialesReal-totalDesc);
+          const totalGanado=totalVialesReal+totalDesc;const gcTransfiere=Math.max(0,minimo-totalGanado);
           return(
             <div style={{background:"var(--dark)",borderRadius:10,padding:"1rem",marginTop:"1rem",color:"var(--cream)"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Viajes teórico (app)</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalVialesApp.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Viajes real (cobrado)</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalVialesReal.toLocaleString()}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Total descuentos</span><span style={{color:"#FCA5A5",fontWeight:700}}>-${totalDesc.toLocaleString()}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Garantía mínima</span><span style={{fontWeight:700}}>${minimo.toLocaleString()}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Gastos del transportista</span><span style={{fontWeight:700}}>${totalDesc.toLocaleString()}</span></div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Garantía mínima</span><span style={{fontWeight:700}}>${minimo.toLocaleString()}</span></div><div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span style={{fontWeight:700}}>Total ganado</span><span style={{fontWeight:700,color:"#86EFAC"}}>${totalGanado.toLocaleString()}</span></div><div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span style={{fontWeight:700}}>Total ganado</span><span style={{fontWeight:700,color:"#86EFAC"}}>${totalGanado.toLocaleString()}</span></div>
               <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".5rem",display:"flex",justifyContent:"space-between",fontSize:"1.1rem",fontFamily:"'Cormorant Garamond',serif"}}><span>GC debe transferir</span><span style={{color:gcTransfiere>0?"#FCA5A5":"#86EFAC",fontWeight:700}}>${gcTransfiere.toLocaleString()}</span></div>
             </div>
           );
