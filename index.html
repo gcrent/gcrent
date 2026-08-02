@@ -255,7 +255,7 @@ function SeccionLiquidTransp({reservas,mesKey,S}){
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Transferencia GC</span><span style={{color:"#86EFAC",fontWeight:700}}>${transferenciaGC.toLocaleString()}</span></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".4rem"}}><span>Total a cobrar</span><span style={{fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:".9rem",marginBottom:".6rem"}}><span>Descuentos</span><span style={{color:"#FCA5A5",fontWeight:700}}>-${totalDesc.toLocaleString()}</span></div>
-      <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".6rem",display:"flex",justifyContent:"space-between",fontSize:"1.3rem",fontFamily:"'Cormorant Garamond',serif"}}><span>El transportista cobra</span><span style={{color:neto>=0?"#86EFAC":"#FCA5A5",fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
+      <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".6rem",display:"flex",justifyContent:"space-between",fontSize:"1.3rem",fontFamily:"'Cormorant Garamond',serif"}}><span>El transportista cobra</span><span style={{color:totalACobrar>=0?"#86EFAC":"#FCA5A5",fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
     </div>
     {gastos.filter(g=>g.concepto||+g.monto>0).length>0&&(
       <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
@@ -429,15 +429,15 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
           const totalViajes=reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===mesLiq).reduce((a,r)=>a+(r.tarifaTransporte??0),0);
           const minimo=datosLiq.minimo_transp||1200000;
           const netoViajes=totalViajes-totalDesc;
-  const transferenciaGC=Math.max(0,minimo-netoViajes);
-  const totalACobrar=netoViajes+transferenciaGC;
+          const transferenciaGC=Math.max(0,minimo-netoViajes);
+          const totalACobrar=netoViajes+transferenciaGC;
           return(
             <div style={{background:"var(--dark)",borderRadius:10,padding:"1rem",marginTop:"1rem",color:"var(--cream)"}}>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Viajes del mes</span><span style={{color:"var(--gold)",fontWeight:700}}>${totalViajes.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Transferencia GC</span><span style={{color:"#86EFAC",fontWeight:700}}>${transferenciaGC.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".3rem"}}><span>Total a cobrar</span><span style={{fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:".85rem",marginBottom:".5rem"}}><span>Total descuentos</span><span style={{color:"#FCA5A5",fontWeight:700}}>-${totalDesc.toLocaleString()}</span></div>
-              <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".5rem",display:"flex",justifyContent:"space-between",fontSize:"1.1rem",fontFamily:"'Cormorant Garamond',serif"}}><span>Neto Marcelo</span><span style={{color:neto>=0?"#86EFAC":"#FCA5A5",fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
+              <div style={{borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:".5rem",display:"flex",justifyContent:"space-between",fontSize:"1.1rem",fontFamily:"'Cormorant Garamond',serif"}}><span>Neto Marcelo</span><span style={{color:totalACobrar>=0?"#86EFAC":"#FCA5A5",fontWeight:700}}>${totalACobrar.toLocaleString()}</span></div>
             </div>
           );
         })()}
