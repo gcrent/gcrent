@@ -1406,6 +1406,35 @@ function App(){
               ))}
             </div>
           </div>
+          <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden",marginTop:"1rem"}}>
+            <div style={{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem"}}>Ocupación por equipo — {MESES[+filtroMesMetricas.split("-")[1]-1]} {filtroMesMetricas.split("-")[0]}</div>
+            <div style={{padding:"1rem"}}>
+              {(()=>{
+                const[anioM,mesM]=filtroMesMetricas.split("-").map(Number);
+                const diasEnMes=new Date(anioM,mesM,0).getDate();
+                const equiposSinCombinados=equipos.filter(e=>!e.esCombinado);
+                return equiposSinCombinados.map(e=>{
+                  const diasOcupados=new Set(
+                    reservas.filter(r=>r.estado!=="cancelado"&&mesKey(r.fecha)===filtroMesMetricas&&(r.equipoId===e.id||(r.comboId&&combos.find(c=>c.id===r.comboId)?.equipoIds.includes(e.id))))
+                    .map(r=>r.fecha)
+                  ).size;
+                  const pct=Math.round(diasOcupados/diasEnMes*100);
+                  const color=pct>=80?"var(--green)":pct>=50?"var(--gold)":"var(--red)";
+                  return(
+                    <div key={e.id} style={{marginBottom:".8rem"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".25rem"}}>
+                        <span style={{fontSize:".85rem",fontWeight:600}}>{e.emoji} {e.nombre}</span>
+                        <span style={{fontSize:".82rem",fontWeight:700,color}}>{diasOcupados}/{diasEnMes} días ({pct}%)</span>
+                      </div>
+                      <div style={{background:"var(--sand)",borderRadius:99,height:7}}>
+                        <div style={{background:color,borderRadius:99,height:7,width:`${pct}%`,transition:"width .3s"}}/>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
         </>)}
 
         {seccion==="promos"&&rol==="admin"&&(<>
