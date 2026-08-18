@@ -830,6 +830,7 @@ function App(){
     if(form.monto===""||form.monto===null||form.monto===undefined){showToast("Ingresá el precio de alquiler");return;}
     const monto=+form.monto;
     if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(form.usarCombo&&form.comboId){const comboSel=combos.find(x=>x.id===form.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
