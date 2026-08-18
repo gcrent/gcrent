@@ -895,7 +895,7 @@ function App(){
   const borrarReserva=async id=>{const{error}=await supa.from("reservas").delete().eq("id",id);if(error){showToast("Error: "+error.message);return;}setReservas(rs=>rs.filter(r=>r.id!==id));showToast("Eliminada");};
  const duplicarReserva=async base=>{
     if(!dupFecha){showToast("Seleccioná fecha");return;}
-    if(!base.comboId&&tieneConflicto(reservas,base.equipoId,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos)){showToast("Ese equipo ya tiene una reserva en esa fecha");return;}
+    if(base.comboId){const comboSel=combos.find(x=>x.id===base.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para esa fecha");return;}}     if(!base.comboId&&tieneConflicto(reservas,base.equipoId,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos)){showToast("Ese equipo ya tiene una reserva en esa fecha");return;}
     const nueva={...base,id:genId(),fecha:dupFecha,estado:"aceptada",senia:0,esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){showToast("Error: "+error.message);return;}
