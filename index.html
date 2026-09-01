@@ -327,8 +327,9 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   };
   const ingresosSocio=(socio)=>datosLiq.periodos.filter(p=>p.socio===socio&&p.desde&&p.hasta).reduce((acc,p)=>acc+reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0),0);
   const ingresosPeriodo=(p)=>{if(!p.desde||!p.hasta)return 0;return reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);};
-  const totalGastosFer=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_fer||0),0);
-  const totalGastosJC=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_jc||0),0);
+  const esMesNuevoCalc=mesLiq>="2026-09";
+  const totalGastosFer=esMesNuevoCalc?(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_fer||0),0):(datosLiq?.gastos_fer||[]).reduce((a,g)=>a+(+g.monto||0),0);
+  const totalGastosJC=esMesNuevoCalc?(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_jc||0),0):(datosLiq?.gastos_jc||[]).reduce((a,g)=>a+(+g.monto||0),0);
   const totalGastos=key=>key==="gastos_fer"?totalGastosFer:totalGastosJC;
   const netoFer=ingresosSocio("Fer")-totalGastosFer;
   const netoJC=ingresosSocio("JC")-totalGastosJC;
@@ -406,6 +407,38 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
     </div>
     <div>
       {(()=>{
+        const esMesNuevo=mesLiq>="2026-09";
+        if(!esMesNuevo){
+          // Vista histórica (hasta agosto 2026) - solo lectura
+          const totalGFer=(datosLiq.gastos_fer||[]).reduce((a,g)=>a+(+g.monto||0),0);
+          const totalGJC=(datosLiq.gastos_jc||[]).reduce((a,g)=>a+(+g.monto||0),0);
+          return(<>
+            <div style={{background:"#FEF3C7",border:"1.5px solid var(--gold)",borderRadius:10,padding:".5rem .9rem",fontSize:".82rem",color:"#92400E",marginBottom:"1rem"}}>Datos históricos (hasta agosto 2026) — solo lectura</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
+              {[["gastos_fer","Fer"],["gastos_jc","JC"]].map(([key,nombre])=>(
+                <div key={key} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
+                  <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>Gastos {nombre}</span>
+                    <span style={{fontSize:".82rem",color:"var(--gold)"}}>-${(nombre==="Fer"?totalGFer:totalGJC).toLocaleString()}</span>
+                  </div>
+                  <div style={{padding:".5rem"}}>
+                    {(datosLiq[key]||[]).filter(g=>g.concepto||+g.monto>0).map((g,i)=>(
+                      <div key={i} style={{display:"flex",justifyContent:"space-between",padding:".25rem .3rem",borderBottom:"1px solid #F5EFE8",fontSize:".78rem"}}>
+                        <span>{g.concepto}</span>
+                        <span style={{fontWeight:700,color:"var(--red)"}}>-${(+g.monto||0).toLocaleString()}</span>
+                      </div>
+                    ))}
+                    <div style={{padding:".5rem .3rem .2rem",borderTop:"2px solid var(--sand)",marginTop:".3rem",display:"flex",justifyContent:"space-between",fontSize:".9rem",fontWeight:700}}>
+                      <span>Total {nombre}</span>
+                      <span style={{color:"var(--red)"}}>-${(nombre==="Fer"?totalGFer:totalGJC).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>);
+        }
+        // Vista nueva (desde septiembre 2026) - editable
         const CATS=[["mantenimiento_equipos","Mantenimiento de equipos"],["mantenimiento_vehiculos","Mantenimiento de vehículos"],["seguros_vehiculos","Seguros de vehículos"],["gastos_societarios","Gastos societarios"],["otros","Otros gastos"]];
         const totalFerCat=cat=>(gastosLiq||[]).filter(g=>g.categoria===cat).reduce((a,g)=>a+(+g.monto_fer||0),0);
         const totalJcCat=cat=>(gastosLiq||[]).filter(g=>g.categoria===cat).reduce((a,g)=>a+(+g.monto_jc||0),0);
