@@ -284,12 +284,16 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
   const [mesLiq,setMesLiq]=useState(mesActual);
   const [datosLiq,setDatosLiq]=useState(null);
   const [guardando,setGuardando]=useState(false);
+  const [gastosLiq,setGastosLiq]=useState([]);
   const S2={inp:{width:"100%",padding:".3rem .5rem",border:"1.5px solid var(--sand)",borderRadius:6,fontFamily:"'DM Sans',sans-serif",fontSize:".78rem",background:"var(--light)"}};
   const periodoVacio=()=>({id:Date.now()+Math.random(),desde:"",hasta:"",socio:""});
   useEffect(()=>{
     setDatosLiq(null);
+    setGastosLiq([]);
     (async()=>{
       const{data}=await supa.from("liquidacion").select("*").eq("mes",mesLiq).single();
+      const{data:gastosData}=await supa.from("gastos_liquidacion").select("*").eq("mes",mesLiq).order("categoria");
+      if(gastosData)setGastosLiq(gastosData);
       if(data){
         setDatosLiq({...data,periodos:data.periodos&&data.periodos.length>0?data.periodos:[periodoVacio()],gastos_fer:data.gastos_fer&&data.gastos_fer.length>0?data.gastos_fer:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_jc:data.gastos_jc&&data.gastos_jc.length>0?data.gastos_jc:CONCEPTOS.map(c=>({concepto:c,monto:""})),gastos_transp:data.gastos_transp&&data.gastos_transp.length>0?data.gastos_transp:Array.from({length:10},()=>({concepto:"",monto:""})),minimo_transp:data.minimo_transp||1200000,semanas_transp:data.semanas_transp||{}});
       } else {
@@ -309,13 +313,25 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
     const{data:ex}=await supa.from("liquidacion").select("id").eq("mes",mesLiq).single();
     if(ex){const{error}=await supa.from("liquidacion").update(payload).eq("mes",mesLiq);if(error){showToast("Error: "+error.message);setGuardando(false);return;}}
     else{const{error}=await supa.from("liquidacion").insert(payload);if(error){showToast("Error: "+error.message);setGuardando(false);return;}}
-    setGuardando(false);showToast("Guardado");
+    setGuardando(false);
+    // Save gastos_liquidacion rows
+    const dirty=gastosLiq.filter(g=>g.isDirty&&!g.isNew);
+    const newRows=gastosLiq.filter(g=>g.isNew&&g.concepto);
+    await Promise.all([
+      ...dirty.map(g=>supa.from("gastos_liquidacion").update({concepto:g.concepto,monto_fer:+g.monto_fer||0,monto_jc:+g.monto_jc||0}).eq("id",g.id)),
+      ...(newRows.length>0?[supa.from("gastos_liquidacion").insert(newRows.map(g=>({mes:mesLiq,categoria:g.categoria,concepto:g.concepto,monto_fer:+g.monto_fer||0,monto_jc:+g.monto_jc||0})))]:[] )
+    ]);
+    const{data:gastosData}=await supa.from("gastos_liquidacion").select("*").eq("mes",mesLiq).order("categoria");
+    if(gastosData)setGastosLiq(gastosData);
+    showToast("Guardado");
   };
   const ingresosSocio=(socio)=>datosLiq.periodos.filter(p=>p.socio===socio&&p.desde&&p.hasta).reduce((acc,p)=>acc+reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0),0);
   const ingresosPeriodo=(p)=>{if(!p.desde||!p.hasta)return 0;return reservas.filter(r=>r.fecha>=p.desde&&r.fecha<=p.hasta&&r.estado!=="cancelado").reduce((a,r)=>a+r.monto,0);};
-  const totalGastos=key=>datosLiq[key].reduce((a,g)=>a+(+g.monto||0),0);
-  const netoFer=ingresosSocio("Fer")-totalGastos("gastos_fer");
-  const netoJC=ingresosSocio("JC")-totalGastos("gastos_jc");
+  const totalGastosFer=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_fer||0),0);
+  const totalGastosJC=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_jc||0),0);
+  const totalGastos=key=>key==="gastos_fer"?totalGastosFer:totalGastosJC;
+  const netoFer=ingresosSocio("Fer")-totalGastosFer;
+  const netoJC=ingresosSocio("JC")-totalGastosJC;
   const diff=Math.round(Math.abs(netoFer-netoJC)/2);
   const deudor=netoFer>netoJC?"Fer debe transferir a JC":"JC debe transferir a Fer";
   const exportarExcelLiq=()=>{
@@ -388,28 +404,48 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
         <span style={{color:"var(--mid)"}}>JC: <strong style={{color:"var(--green)"}}>${ingresosSocio("JC").toLocaleString()}</strong></span>
       </div>
     </div>
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"1rem"}}>
-      {[["gastos_fer","Fer"],["gastos_jc","JC"]].map(([key,nombre])=>(
-        <div key={key} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden"}}>
-          <div style={{background:"var(--dark)",color:"var(--cream)",padding:".75rem 1rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <span>Gastos {nombre}</span>
-            <span style={{fontSize:".82rem",color:"var(--gold)"}}>-${totalGastos(key).toLocaleString()}</span>
-          </div>
-          <div style={{padding:".5rem"}}>
-            {datosLiq[key].map((g,i)=>(
-              <div key={i} style={{display:"flex",gap:".3rem",alignItems:"center",padding:".25rem 0",borderBottom:"1px solid #F5EFE8"}}>
-                <input value={g.concepto} onChange={e=>updGasto(key,i,"concepto",e.target.value)} style={{...S2.inp,flex:2}}/>
-                <input type="number" value={g.monto} onChange={e=>updGasto(key,i,"monto",e.target.value)} placeholder="0" style={{...S2.inp,flex:1,textAlign:"right"}}/>
+    <div>
+      {(()=>{
+        const CATS=[["mantenimiento_equipos","Mantenimiento de equipos"],["mantenimiento_vehiculos","Mantenimiento de vehículos"],["seguros_vehiculos","Seguros de vehículos"],["gastos_societarios","Gastos societarios"],["otros","Otros gastos"]];
+        const totalFerCat=cat=>(gastosLiq||[]).filter(g=>g.categoria===cat).reduce((a,g)=>a+(+g.monto_fer||0),0);
+        const totalJcCat=cat=>(gastosLiq||[]).filter(g=>g.categoria===cat).reduce((a,g)=>a+(+g.monto_jc||0),0);
+        const totalFerAll=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_fer||0),0);
+        const totalJcAll=(gastosLiq||[]).reduce((a,g)=>a+(+g.monto_jc||0),0);
+        const addRow=cat=>setGastosLiq(prev=>[...prev,{id:"new_"+Date.now(),mes:mesLiq,categoria:cat,concepto:"",monto_fer:0,monto_jc:0,isNew:true}]);
+        const updRow=(id,campo,val)=>setGastosLiq(prev=>prev.map(g=>g.id===id?{...g,[campo]:val,isDirty:true}:g));
+        const delRow=async(g)=>{if(!g.isNew){await supa.from("gastos_liquidacion").delete().eq("id",g.id);}setGastosLiq(prev=>prev.filter(x=>x.id!==g.id));};
+        return(<>
+          {CATS.map(([cat,label])=>(
+            <div key={cat} style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden",marginBottom:"1rem"}}>
+              <div style={{background:"var(--dark)",color:"var(--cream)",padding:".65rem 1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1rem"}}>{label}</span>
+                <span style={{fontSize:".8rem",color:"var(--gold)"}}>Fer: ${totalFerCat(cat).toLocaleString()} · JC: ${totalJcCat(cat).toLocaleString()}</span>
               </div>
-            ))}
-            <div style={{padding:".5rem .3rem .2rem",borderTop:"2px solid var(--sand)",marginTop:".3rem"}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".82rem",marginBottom:".2rem"}}><span>Ingresos {nombre}</span><span style={{color:"var(--green)",fontWeight:700}}>${ingresosSocio(nombre).toLocaleString()}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:".82rem",marginBottom:".2rem"}}><span>Gastos</span><span style={{color:"var(--red)",fontWeight:700}}>-${totalGastos(key).toLocaleString()}</span></div>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:"1rem",fontWeight:700,borderTop:"1.5px solid var(--sand)",paddingTop:".3rem",marginTop:".2rem"}}><span>Neto {nombre}</span><span style={{color:(nombre==="Fer"?netoFer:netoJC)>=0?"var(--green)":"var(--red)"}}>${(nombre==="Fer"?netoFer:netoJC).toLocaleString()}</span></div>
+              <div style={{padding:".5rem"}}>
+                <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:".3rem",padding:".2rem .3rem",marginBottom:".2rem"}}>
+                  <span style={{fontSize:".65rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase"}}>Concepto</span>
+                  <span style={{fontSize:".65rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",textAlign:"right"}}>Fer</span>
+                  <span style={{fontSize:".65rem",fontWeight:700,color:"var(--mid)",textTransform:"uppercase",textAlign:"right"}}>JC</span>
+                  <span/>
+                </div>
+                {(gastosLiq||[]).filter(g=>g.categoria===cat).map(g=>(
+                  <div key={g.id} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr auto",gap:".3rem",alignItems:"center",padding:".2rem 0",borderBottom:"1px solid #F5EFE8"}}>
+                    <input value={g.concepto} onChange={e=>updRow(g.id,"concepto",e.target.value)} style={{padding:".28rem .4rem",border:"1.5px solid var(--sand)",borderRadius:6,fontFamily:"'DM Sans',sans-serif",fontSize:".78rem",background:"var(--light)"}}/>
+                    <input type="number" value={g.monto_fer||""} onChange={e=>updRow(g.id,"monto_fer",+e.target.value||0)} placeholder="0" style={{padding:".28rem .4rem",border:"1.5px solid var(--sand)",borderRadius:6,fontFamily:"'DM Sans',sans-serif",fontSize:".78rem",background:"var(--light)",textAlign:"right"}}/>
+                    <input type="number" value={g.monto_jc||""} onChange={e=>updRow(g.id,"monto_jc",+e.target.value||0)} placeholder="0" style={{padding:".28rem .4rem",border:"1.5px solid var(--sand)",borderRadius:6,fontFamily:"'DM Sans',sans-serif",fontSize:".78rem",background:"var(--light)",textAlign:"right"}}/>
+                    <button onClick={()=>delRow(g)} style={{padding:".2rem .4rem",borderRadius:5,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".72rem"}}>X</button>
+                  </div>
+                ))}
+                <button onClick={()=>addRow(cat)} style={{marginTop:".4rem",padding:".25rem .7rem",borderRadius:6,border:"none",background:"var(--bronze)",color:"#fff",cursor:"pointer",fontSize:".75rem",fontWeight:600}}>+ Fila</button>
+              </div>
             </div>
+          ))}
+          <div style={{background:"var(--dark)",borderRadius:14,padding:"1rem",marginBottom:"1rem",color:"var(--cream)",display:"flex",justifyContent:"space-around"}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase",marginBottom:".2rem"}}>Total gastos Fer</div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"#FCA5A5"}}>-${totalFerAll.toLocaleString()}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:".72rem",opacity:.7,textTransform:"uppercase",marginBottom:".2rem"}}>Total gastos JC</div><div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.4rem",color:"#FCA5A5"}}>-${totalJcAll.toLocaleString()}</div></div>
           </div>
-        </div>
-      ))}
+        </>);
+      })()}
     </div>
     <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,overflow:"hidden",marginTop:"1rem"}}>
       <div style={{background:"var(--dark)",color:"var(--cream)",padding:".85rem 1.2rem",fontFamily:"'Cormorant Garamond',serif",fontSize:"1.1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -991,6 +1027,12 @@ function App(){
     const wsEq=window.XLSX.utils.aoa_to_sheet([["ID","Nombre","Emoji","Descripción","Precio"],...equipos.map(e=>[e.id,e.nombre,e.emoji,e.desc,e.precio])]);
     window.XLSX.utils.book_append_sheet(wb,wsEq,"Equipos");
    const{data:liqData}=await supa.from("liquidacion").select("*");
+    const{data:gastosBackup}=await supa.from("gastos_liquidacion").select("*").order("mes").order("categoria");
+    if(gastosBackup&&gastosBackup.length>0){
+      const CATS_LABELS={"mantenimiento_equipos":"Mantenimiento equipos","mantenimiento_vehiculos":"Mantenimiento vehículos","seguros_vehiculos":"Seguros vehículos","gastos_societarios":"Gastos societarios","otros":"Otros gastos"};
+      const wsGastos=window.XLSX.utils.aoa_to_sheet([["Mes","Categoría","Concepto","Fer","JC","Total"],...gastosBackup.map(g=>[g.mes,CATS_LABELS[g.categoria]||g.categoria,g.concepto,+g.monto_fer||0,+g.monto_jc||0,(+g.monto_fer||0)+(+g.monto_jc||0)])]);
+      window.XLSX.utils.book_append_sheet(wb,wsGastos,"Gastos Liquidacion");
+    }
     if(liqData&&liqData.length>0){
       const wsLiq=window.XLSX.utils.aoa_to_sheet([
         ["Mes","Garantía Mínima","Sem1 JC","Sem2 JC","Sem3 JC","Sem4 JC","Sem1 FER","Sem2 FER","Sem3 FER","Sem4 FER","Extras JC","Extras FER","Viajes Real Total","Gasto 1","Monto 1","Gasto 2","Monto 2","Gasto 3","Monto 3","Gasto 4","Monto 4","Gasto 5","Monto 5","Gasto 6","Monto 6","Gasto 7","Monto 7","Gasto 8","Monto 8","Gasto 9","Monto 9","Gasto 10","Monto 10","Total Gastos","GC Debe Transferir"],
