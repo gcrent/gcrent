@@ -1059,27 +1059,21 @@ function App(){
     window.XLSX.utils.book_append_sheet(wb,wsPromos,"Promos");
     const wsEq=window.XLSX.utils.aoa_to_sheet([["ID","Nombre","Emoji","Descripción","Precio"],...equipos.map(e=>[e.id,e.nombre,e.emoji,e.desc,e.precio])]);
     window.XLSX.utils.book_append_sheet(wb,wsEq,"Equipos");
-   const{data:liqData}=await supa.from("liquidacion").select("*");
-    const{data:gastosBackup}=await supa.from("gastos_liquidacion").select("*").order("mes",{ascending:true}).order("categoria",{ascending:true});
-    const CATS_LABELS={"mantenimiento_equipos":"Mantenimiento equipos","mantenimiento_vehiculos":"Mantenimiento vehículos","seguros_vehiculos":"Seguros vehículos","gastos_societarios":"Gastos societarios","otros":"Otros gastos"};
+    try{
+      const resGastos=await supa.from("gastos_liquidacion").select("*").order("mes",{ascending:true}).order("categoria",{ascending:true});
+      const gastosBackup=resGastos.data||[];
+      const CATS_LABELS={"mantenimiento_equipos":"Mantenimiento equipos","mantenimiento_vehiculos":"Mantenimiento vehículos","seguros_vehiculos":"Seguros vehículos","gastos_societarios":"Gastos societarios","otros":"Otros gastos"};
       const wsGastos=window.XLSX.utils.aoa_to_sheet([["Mes","Categoría","Concepto","Fer","JC","Total"],...gastosBackup.map(g=>[g.mes,CATS_LABELS[g.categoria]||g.categoria,g.concepto,+g.monto_fer||0,+g.monto_jc||0,(+g.monto_fer||0)+(+g.monto_jc||0)])]);
-           window.XLSX.utils.book_append_sheet(wb,wsGastos,"Gastos Liquidacion");
-    if(liqData&&liqData.length>0){
-      const wsLiq=window.XLSX.utils.aoa_to_sheet([
-        ["Mes","Garantía Mínima","Sem1 JC","Sem2 JC","Sem3 JC","Sem4 JC","Sem1 FER","Sem2 FER","Sem3 FER","Sem4 FER","Extras JC","Extras FER","Viajes Real Total","Gasto 1","Monto 1","Gasto 2","Monto 2","Gasto 3","Monto 3","Gasto 4","Monto 4","Gasto 5","Monto 5","Gasto 6","Monto 6","Gasto 7","Monto 7","Gasto 8","Monto 8","Gasto 9","Monto 9","Gasto 10","Monto 10","Total Gastos","GC Debe Transferir"],
-        ...liqData.map(l=>{
-          const st=l.semanas_transp||{};
-          const keys=["sem1_jc","sem2_jc","sem3_jc","sem4_jc","sem1_fer","sem2_fer","sem3_fer","sem4_fer","extras_jc","extras_fer"];
-          const totalReal=keys.reduce((a,k)=>a+(+st[k]||0),0);
-          const gt=l.gastos_transp||[];
-          const totalGastos=gt.reduce((a,g)=>a+(+g.monto||0),0);
-          const minimo=l.minimo_transp||1200000;
-          const gcTransfiere=Math.max(0,minimo-totalReal-totalGastos);
-          return[l.mes,minimo,...keys.map(k=>+st[k]||0),totalReal,...gt.slice(0,10).flatMap(g=>[g.concepto||"",+g.monto||0]),totalGastos,gcTransfiere];
-        })
-      ]);
-      window.XLSX.utils.book_append_sheet(wb,wsLiq,"Liquidacion Transp");
-    }
+      window.XLSX.utils.book_append_sheet(wb,wsGastos,"Gastos Liquidacion");
+    }catch(e){console.error("Error gastos:",e);}
+    try{
+      const resLiq=await supa.from("liquidacion").select("*");
+      const liqData=resLiq.data||[];
+      if(liqData.length>0){
+        const wsLiq=window.XLSX.utils.aoa_to_sheet([["Mes","Garantía Mínima","Sem1 JC","Sem2 JC","Sem3 JC","Sem4 JC","Sem1 FER","Sem2 FER","Sem3 FER","Sem4 FER","Extras JC","Extras FER","Viajes Real Total","Gasto 1","Monto 1","Gasto 2","Monto 2","Gasto 3","Monto 3","Gasto 4","Monto 4","Gasto 5","Monto 5","Gasto 6","Monto 6","Gasto 7","Monto 7","Gasto 8","Monto 8","Gasto 9","Monto 9","Gasto 10","Monto 10","Total Gastos","GC Debe Transferir"],...liqData.map(l=>{const st=l.semanas_transp||{};const keys=["sem1_jc","sem2_jc","sem3_jc","sem4_jc","sem1_fer","sem2_fer","sem3_fer","sem4_fer","extras_jc","extras_fer"];const totalReal=keys.reduce((a,k)=>a+(+st[k]||0),0);const gt=l.gastos_transp||[];const totalGastos=gt.reduce((a,g)=>a+(+g.monto||0),0);const minimo=l.minimo_transp||1200000;const gcTransfiere=Math.max(0,minimo-totalReal-totalGastos);return[l.mes,minimo,...keys.map(k=>+st[k]||0),totalReal,...gt.slice(0,10).flatMap(g=>[g.concepto||"",+g.monto||0]),totalGastos,gcTransfiere];})]);
+        window.XLSX.utils.book_append_sheet(wb,wsLiq,"Liquidacion Transp");
+      }
+    }catch(e){console.error("Error liq:",e);}
     window.XLSX.writeFile(wb,`GCRent_Backup_${fmt(hoy).replace(/-/g,"")}.xlsx`);
     showToast("Backup descargado");
   };
