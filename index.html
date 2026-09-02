@@ -1060,7 +1060,7 @@ function App(){
     const wsEq=window.XLSX.utils.aoa_to_sheet([["ID","Nombre","Emoji","Descripción","Precio"],...equipos.map(e=>[e.id,e.nombre,e.emoji,e.desc,e.precio])]);
     window.XLSX.utils.book_append_sheet(wb,wsEq,"Equipos");
    const{data:liqData}=await supa.from("liquidacion").select("*");
-    const{data:gastosBackup}=await supa.from("gastos_liquidacion").select("*").order("mes").order("categoria");
+    const{data:gastosBackup}=await supa.from("gastos_liquidacion").select("*").order("mes",{ascending:true}).order("categoria",{ascending:true});
     if(gastosBackup&&gastosBackup.length>0){
       const CATS_LABELS={"mantenimiento_equipos":"Mantenimiento equipos","mantenimiento_vehiculos":"Mantenimiento vehículos","seguros_vehiculos":"Seguros vehículos","gastos_societarios":"Gastos societarios","otros":"Otros gastos"};
       const wsGastos=window.XLSX.utils.aoa_to_sheet([["Mes","Categoría","Concepto","Fer","JC","Total"],...gastosBackup.map(g=>[g.mes,CATS_LABELS[g.categoria]||g.categoria,g.concepto,+g.monto_fer||0,+g.monto_jc||0,(+g.monto_fer||0)+(+g.monto_jc||0)])]);
