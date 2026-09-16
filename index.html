@@ -1025,7 +1025,7 @@ function App(){
   const hace14=fmt(addD(hoy,-14));
   const equiposOciosos=equipos.filter(e=>!reservas.some(r=>r.equipoId===e.id&&r.fecha>=hace14&&r.estado!=="cancelado"));
   const rankingClientes=useMemo(()=>{const m={};reservas.filter(r=>r.estado!=="cancelado"&&r.fecha<=fmt(hoy)).forEach(r=>{const k=r.clienteTel||r.clienteEmail||r.clienteNombre;if(!m[k])m[k]={nombre:r.clienteNombre,cant:0,monto:0};m[k].cant++;m[k].monto+=r.monto;});return Object.values(m).sort((a,b)=>b.monto-a.monto);},[reservas]);
-  const reservasFiltradas=useMemo(()=>{let rs=[...reservas];if(filtroC)rs=rs.filter(r=>r.clienteEmail===filtroC||r.clienteTel===filtroC||r.clienteNombre===filtroC);if(filtroE)rs=rs.filter(r=>r.equipoId===+filtroE);if(filtroEst)rs=rs.filter(r=>r.estado===filtroEst);if(filterMes)rs=rs.filter(r=>mesKey(r.fecha)===filterMes);return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));},[reservas,filtroC,filtroE,filtroEst,filterMes]);
+  const reservasFiltradas=useMemo(()=>{let rs=[...reservas];if(filtroC)rs=rs.filter(r=>r.clienteNombre.toLowerCase().includes(filtroC.toLowerCase()));if(filtroE)rs=rs.filter(r=>r.equipoId===+filtroE);if(filtroEst)rs=rs.filter(r=>r.estado===filtroEst);if(filterMes)rs=rs.filter(r=>mesKey(r.fecha)===filterMes);return rs.sort((a,b)=>a.fecha.localeCompare(b.fecha));},[reservas,filtroC,filtroE,filtroEst,filterMes]);
   const reservasOrdenadas=useMemo(()=>{
     const fmtHoy=fmt(hoy);
     const pend=[...reservas].filter(r=>r.estado==="pendiente").sort((a,b)=>a.fecha.localeCompare(b.fecha));
@@ -1561,7 +1561,11 @@ function App(){
             {btn("Excel",exportarExcel,"var(--green)")}
           </div>
           <div style={{background:"#fff",border:"1px solid var(--sand)",borderRadius:14,padding:".9rem 1rem",marginBottom:"1rem",display:"flex",gap:".6rem",alignItems:"flex-end",flexWrap:"wrap"}}>
-            {[{label:"Cliente",value:filtroC,onChange:e=>setFiltroC(e.target.value),options:[{value:"",label:"Todas"},...clientes.map(([k,nombre])=>({value:k,label:nombre}))]},{label:"Equipo",value:filtroE,onChange:e=>setFiltroE(e.target.value),options:[{value:"",label:"Todos"},...equipos.map(e=>({value:e.id,label:e.nombre}))]},{label:"Estado",value:filtroEst,onChange:e=>setFiltroEst(e.target.value),options:[{value:"",label:"Todos"},{value:"pendiente",label:"Pendiente"},{value:"aceptada",label:"Aceptada"},{value:"sena",label:"Con seña"},{value:"activo",label:"Activo"},{value:"completado",label:"Completado"},{value:"cancelado",label:"Cancelado"}]}].map((f,i)=>(
+          <div style={{flex:1,minWidth:140}}>
+                <label style={S.lbl}>Cliente</label>
+                <input value={filtroC} onChange={e=>setFiltroC(e.target.value)} placeholder="Buscar por nombre..." style={S.inp}/>
+              </div>
+            {[{label:"Equipo",value:filtroE,onChange:e=>setFiltroE(e.target.value),options:[{value:"",label:"Todos"},...equipos.map(e=>({value:e.id,label:e.nombre}))]},{label:"Estado",value:filtroEst,onChange:e=>setFiltroEst(e.target.value),options:[{value:"",label:"Todos"},{value:"pendiente",label:"Pendiente"},{value:"aceptada",label:"Aceptada"},{value:"sena",label:"Con seña"},{value:"activo",label:"Activo"},{value:"completado",label:"Completado"},{value:"cancelado",label:"Cancelado"}]}].map((f,i)=>(
               <div key={i} style={{flex:1,minWidth:140}}>
                 <label style={S.lbl}>{f.label}</label>
                 <select value={f.value} onChange={f.onChange} style={S.inp}>{f.options.map((o,j)=><option key={j} value={o.value}>{o.label}</option>)}</select>
