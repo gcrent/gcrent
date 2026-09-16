@@ -923,7 +923,8 @@ function App(){
   const guardarEdicion=async(alcance="solo")=>{
     if(!form.fecha){showToast("Fecha requerida");return;}
     const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
-    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+   if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(form.usarCombo&&form.comboId){const comboEd=combos.find(x=>x.id===form.comboId);if(comboEd&&comboEd.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
     const monto=form.monto!==""?+form.monto:editRes.monto;
     const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,observaciones:form.observaciones||""};
     if(editRes.serieId&&alcance==="futuros"){
