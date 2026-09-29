@@ -91,9 +91,15 @@ const cFromDb=c=>({id:c.id,nombre:c.nombre,desc:c.descripcion,precio:c.precio,eq
 const pToDb=p=>({id:p.id,equipo_id:p.equipoId,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 const pFromDb=p=>({id:p.id,equipoId:p.equipo_id,titulo:p.titulo,descuento:p.descuento,activa:p.activa,notificada:p.notificada});
 
-function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos,equipos){
+function equipoBloqueadoEnFecha(bloqueos,equipoId,fecha){
+  if(!bloqueos||!bloqueos.length||!equipoId||!fecha)return false;
+  const eId=parseInt(String(equipoId),10);
+  return bloqueos.some(b=>parseInt(String(b.equipoId),10)===eId&&String(fecha)>=String(b.fechaDesde)&&String(fecha)<=String(b.fechaHasta));
+}
+function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId,combos,equipos,bloqueos){
   const eId=parseInt(String(equipoId),10);
   if(!eId||!fecha)return false;
+  if(equipoBloqueadoEnFecha(bloqueos,eId,fecha))return true;
   const hE=horaEntrega||"00:00",hR=horaRetiro||"23:59";
   const eq=equipos?.find(e=>e.id===eId);
   const maquinaId=eq?.maquinaId||null;
@@ -111,7 +117,8 @@ function tieneConflicto(reservas,equipoId,fecha,horaEntrega,horaRetiro,excludeId
   }
   return false;
 }
-function equipoLibreEnFecha(reservas,equipoId,fecha,combos,equipos){
+function equipoLibreEnFecha(reservas,equipoId,fecha,combos,equipos,bloqueos){
+  if(equipoBloqueadoEnFecha(bloqueos,equipoId,fecha))return false;
   const eq=equipos?.find(e=>e.id===equipoId);const maquinaId=eq?.maquinaId||null;const hermanos=maquinaId&&equipos?equipos.filter(e=>e.maquinaId===maquinaId).map(e=>e.id):[];return!reservas.some(r=>{if(r.fecha!==fecha||r.estado==="cancelado")return false;if(r.equipoId===equipoId)return true;if(maquinaId&&hermanos.includes(r.equipoId))return true;if(r.comboId&&combos){const c=combos.find(x=>x.id===r.comboId);if(c&&c.equipoIds.some(id=>id===equipoId||(maquinaId&&hermanos.includes(id))))return true;}return false;});
 }
 
@@ -129,7 +136,7 @@ const Overlay=({onClose,children,maxW=540})=>(
   </div>
 );
 
-function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,onSubmit,onCancel,submitLabel,onSubmitSerie}){
+function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,tarifas,bloqueos,onSubmit,onCancel,submitLabel,onSubmitSerie}){
   const promoActiva=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
   const montoPrecargado=useRef(false);
   useEffect(()=>{
@@ -147,7 +154,7 @@ function FormReserva({titulo,form,fv,promos,combos,equipos,reservas,excludeId,ta
     return[...m.values()].filter(r=>r.clienteNombre.toLowerCase().includes(form.clienteNombre.toLowerCase())&&r.clienteNombre!==form.clienteNombre).slice(0,5);
   },[form.clienteNombre,reservas,excludeId]);
   const selCliente=r=>{fv("clienteNombre",r.clienteNombre);fv("clienteTel",r.clienteTel||"");fv("clienteEmail",r.clienteEmail||"");fv("direccion",r.direccion||"");fv("localidad",r.localidad||"");};
-  const conflicto=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId,combos,equipos);
+  const conflicto=!form.usarCombo&&form.equipoId&&form.fecha&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,excludeId,combos,equipos,bloqueos);
   return(
     <Overlay onClose={onCancel}>
       <div style={S.mh}>{titulo} <CloseBtn onClose={onCancel}/></div>
@@ -561,8 +568,8 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
     while(c.length%7!==0){const d=new Date(y,m+1,c.length-u.getDate()-p.getDay()+1);c.push({date:fmt(d),day:d.getDate(),other:true});}
     return c;
   };
-  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos,equipos));},[selDay,reservas,equipos]);
-  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos,equipos)));},[selDay,reservas,combos]);
+  const equiposLibres=useMemo(()=>{if(!selDay)return[];return equipos.filter(e=>equipoLibreEnFecha(reservas,e.id,selDay,combos,equipos,bloqueos));},[selDay,reservas,equipos,bloqueos]);
+  const combosLibres=useMemo(()=>{if(!selDay)return[];return combos.filter(c=>c.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,selDay,combos,equipos,bloqueos)));},[selDay,reservas,combos,bloqueos]);
   const precio=useMemo(()=>{if(usarCombo&&selCombo)return selCombo.precio;if(!usarCombo&&selEquipo){const p=promos.find(pr=>pr.activa&&pr.equipoId===selEquipo.id);return p?Math.round(selEquipo.precio*(1-p.descuento/100)):selEquipo.precio;}return 0;},[selEquipo,selCombo,usarCombo,promos]);
   const tarifa=useMemo(()=>{if(!pf.localidad)return TARIFA_BASE;const eId=usarCombo?(selCombo&&selCombo.equipoIds[0]):selEquipo?.id;return calcTarifa(eId,pf.localidad,tarifas,equipos)||TARIFA_BASE;},[pf.localidad,selEquipo,selCombo,usarCombo,tarifas]);
   const dotsEnFecha=date=>{
@@ -660,7 +667,7 @@ function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
                   {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
                   {(()=>{const{y,m}=calMes,p=new Date(y,m,1),u=new Date(y,m+1,0),cells=[];for(let i=0;i<p.getDay();i++){const d=new Date(y,m,-p.getDay()+i+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}for(let d=1;d<=u.getDate();d++)cells.push({date:fmt(new Date(y,m,d)),day:d,other:false});while(cells.length%7!==0){const d=new Date(y,m+1,cells.length-u.getDate()-p.getDay()+1);cells.push({date:fmt(d),day:d.getDate(),other:true});}return cells;})().map((c,i)=>{
                     const eId=filtroEquipoPublico?.id;
-                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos):filtroComboPublico?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos)):true;
+                    const libre=eId?equipoLibreEnFecha(reservas,eId,c.date,combos,equipos,bloqueos):filtroComboPublico?filtroComboPublico.equipoIds.every(id=>equipoLibreEnFecha(reservas,id,c.date,combos,equipos,bloqueos)):true;
                     const esPasado=c.date<fmtHoy;const isToday=c.date===fmtHoy;const isSel=c.date===selDay;
                     return<div key={i} onClick={()=>{if(c.other||esPasado)return;if(libre){setSelDay(c.date);setSelEquipo(filtroEquipoPublico);setSelCombo(filtroComboPublico);setUsarCombo(!!filtroComboPublico);setPaso(3);}}} style={{background:isSel?"rgba(176,125,78,.2)":isToday?"rgba(176,125,78,.1)":"#fff",minHeight:64,padding:".3rem .28rem",cursor:(esPasado||c.other)?"default":libre?"pointer":"not-allowed",opacity:c.other||esPasado?.35:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
                       <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday||isSel?"var(--bronze)":"transparent",color:isToday||isSel?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
@@ -852,6 +859,8 @@ function App(){
   const [fechaDesdeTransp,setFechaDesdeTransp]=useState("");
   const [fechaHastaTransp,setFechaHastaTransp]=useState("");
   const [mantenimientos,setMantenimientos]=useState([]);
+  const [bloqueos,setBloqueos]=useState([]);
+  const [bloqueoForm,setBloqueoForm]=useState({equipoId:"",fechaDesde:"",fechaHasta:"",motivo:""});
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:"",grupoTarifa:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10"});
@@ -867,13 +876,14 @@ function App(){
   const pendientes=useMemo(()=>reservas.filter(r=>r.estado==="pendiente"),[reservas]);
 
   const cargarDatos=async()=>{
-    const[resR,resC,resP,resE,resT,resM]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("orden"),supa.from("tarifas").select("*"),supa.from("mantenimientos").select("*").order("fecha",{ascending:false})]);
+    const[resR,resC,resP,resE,resT,resM,resB]=await Promise.all([supa.from("reservas").select("*").order("fecha"),supa.from("combos").select("*"),supa.from("promos").select("*"),supa.from("equipos").select("*").eq("activo",true).order("orden"),supa.from("tarifas").select("*"),supa.from("mantenimientos").select("*").order("fecha",{ascending:false}),supa.from("bloqueos").select("*").order("fecha_desde")]);
     if(resR.data)setReservas(resR.data.map(fromDb));
     if(resC.data)setCombos(resC.data.map(cFromDb));
     if(resP.data)setPromos(resP.data.map(pFromDb));
     if(resE.data)setEquipos(resE.data.map(e=>({id:e.id,nombre:e.nombre,emoji:e.emoji||"🔧",desc:e.descripcion||"",precio:+e.precio,activo:e.activo,maquinaId:e.maquina_id||null,grupoTarifa:e.grupo_tarifa||null,alertaMantenimiento:e.alerta_mantenimiento||30,esCombinado:e.es_combinado||false})));
     if(resT.data){const t={zona1:{},zona2:{}};resT.data.forEach(r=>{t.zona1[r.grupo]=+r.zona1;t.zona2[r.grupo]=+r.zona2;});setTarifas(t);}
     if(resM.data)setMantenimientos(resM.data);
+    if(resB.data)setBloqueos(resB.data.map(b=>({id:b.id,equipoId:b.equipo_id,fechaDesde:b.fecha_desde,fechaHasta:b.fecha_hasta,motivo:b.motivo||""})));
   };
 
   const intentarLogin=key=>{
@@ -898,15 +908,15 @@ function App(){
     const nombreCompleto=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
     if(form.monto===""||form.monto===null||form.monto===undefined){showToast("Ingresá el precio de alquiler");return;}
     const monto=+form.monto;
-    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
-    if(form.usarCombo&&form.comboId){const comboSel=combos.find(x=>x.id===form.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
+    if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos,bloqueos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(form.usarCombo&&form.comboId){const comboSel=combos.find(x=>x.id===form.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,null,combos,equipos,bloqueos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
     const seniaVal=form.senia===""?0:+form.senia;
     const promo=!form.usarCombo?promos.find(p=>p.activa&&p.equipoId===+form.equipoId):null;
     if(promo&&seniaVal<Math.round(monto*.3)){showToast(`Seña mínima $${Math.round(monto*.3).toLocaleString()}`);return;}
     const base={id:genId(),clienteNombre:nombreCompleto,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,estado:seniaVal>0?"sena":"aceptada",monto,senia:seniaVal,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,esRecurrencia:false,serieId:null,observaciones:form.observaciones||""};
     const recs=genRecs(base,form.repeticion,12,form.repeticionHasta||"");
     const todas=[base,...recs];
-    if(form.repeticion!=="none"){const conflictos=todas.filter(r=>{if(form.usarCombo&&form.comboId){const c=combos.find(x=>x.id===form.comboId);return c&&c.equipoIds.some(id=>tieneConflicto(reservas,id,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos));}return tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos);});if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
+    if(form.repeticion!=="none"){const conflictos=todas.filter(r=>{if(form.usarCombo&&form.comboId){const c=combos.find(x=>x.id===form.comboId);return c&&c.equipoIds.some(id=>tieneConflicto(reservas,id,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos,bloqueos));}return tieneConflicto(reservas,r.equipoId,r.fecha,r.horaEntrega,r.horaRetiro,null,combos,equipos,bloqueos);});if(conflictos.length>0){showToast(`Conflicto en ${conflictos.length} fecha${conflictos.length>1?"s":""}: ${conflictos.slice(0,3).map(r=>fmtVis(r.fecha)).join(", ")}${conflictos.length>3?"...":""}`);return;}}
     const{error}=await supa.from("reservas").insert(todas.map(toDb));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(r=>[...r,...todas]);setModal(null);setForm(FDEF);
@@ -923,8 +933,8 @@ function App(){
   const guardarEdicion=async(alcance="solo")=>{
     if(!form.fecha){showToast("Fecha requerida");return;}
     const nombreCompletoEd=form.clienteApellido?form.clienteNombre+" "+form.clienteApellido:form.clienteNombre;
-   if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
-    if(form.usarCombo&&form.comboId){const comboEd=combos.find(x=>x.id===form.comboId);if(comboEd&&comboEd.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
+   if(!form.usarCombo&&tieneConflicto(reservas,form.equipoId,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos,bloqueos)){showToast("Ese equipo ya tiene una reserva en ese horario ese día");return;}
+    if(form.usarCombo&&form.comboId){const comboEd=combos.find(x=>x.id===form.comboId);if(comboEd&&comboEd.equipoIds.some(id=>tieneConflicto(reservas,id,form.fecha,form.horaEntrega,form.horaRetiro,editRes.id,combos,equipos,bloqueos))){showToast("Uno de los equipos del combo ya está reservado para ese día");return;}}
     const monto=form.monto!==""?+form.monto:editRes.monto;
     const updated={...editRes,clienteNombre:nombreCompletoEd,clienteEmail:form.clienteEmail,clienteTel:form.clienteTel,equipoId:form.usarCombo?null:+form.equipoId,comboId:form.usarCombo?form.comboId:null,fecha:form.fecha,horaEntrega:form.horaEntrega,horaRetiro:form.horaRetiro,monto,senia:+form.senia||editRes.senia,direccion:form.direccion,localidad:form.localidad,tarifaTransporte:form.tarifaTransporte!==""&&form.tarifaTransporte!==null?+form.tarifaTransporte:0,repeticion:form.repeticion,observaciones:form.observaciones||""};
     if(editRes.serieId&&alcance==="futuros"){
@@ -965,11 +975,47 @@ function App(){
   const borrarReserva=async id=>{const{error}=await supa.from("reservas").delete().eq("id",id);if(error){showToast("Error: "+error.message);return;}setReservas(rs=>rs.filter(r=>r.id!==id));showToast("Eliminada");};
  const duplicarReserva=async base=>{
     if(!dupFecha){showToast("Seleccioná fecha");return;}
-    if(base.comboId){const comboSel=combos.find(x=>x.id===base.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos))){showToast("Uno de los equipos del combo ya está reservado para esa fecha");return;}}     if(!base.comboId&&tieneConflicto(reservas,base.equipoId,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos)){showToast("Ese equipo ya tiene una reserva en esa fecha");return;}
+    if(base.comboId){const comboSel=combos.find(x=>x.id===base.comboId);if(comboSel&&comboSel.equipoIds.some(id=>tieneConflicto(reservas,id,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos,bloqueos))){showToast("Uno de los equipos del combo ya está reservado para esa fecha");return;}}     if(!base.comboId&&tieneConflicto(reservas,base.equipoId,dupFecha,base.horaEntrega,base.horaRetiro,null,combos,equipos,bloqueos)){showToast("Ese equipo ya tiene una reserva en esa fecha");return;}
     const nueva={...base,id:genId(),fecha:dupFecha,estado:"aceptada",senia:0,esRecurrencia:false,serieId:null};
     const{error}=await supa.from("reservas").insert(toDb(nueva));
     if(error){showToast("Error: "+error.message);return;}
     setReservas(rs=>[...rs,nueva]);setDupFecha("");setModal(null);showToast("Duplicada");
+  };
+  const crearBloqueo=async()=>{
+    const{equipoId,fechaDesde,fechaHasta,motivo}=bloqueoForm;
+    if(!equipoId||!fechaDesde||!fechaHasta){showToast("Completá equipo y fechas");return;}
+    if(fechaDesde>fechaHasta){showToast("La fecha desde debe ser anterior a hasta");return;}
+    const{data,error}=await supa.from("bloqueos").insert({equipo_id:+equipoId,fecha_desde:fechaDesde,fecha_hasta:fechaHasta,motivo:motivo||""}).select().single();
+    if(error){showToast("Error: "+error.message);return;}
+    const nuevo={id:data.id,equipoId:+equipoId,fechaDesde,fechaHasta,motivo:motivo||""};
+    setBloqueos(bs=>[...bs,nuevo]);
+    // Cancelar reservas activas en el rango
+    const afectadas=reservas.filter(r=>r.estado!=="cancelado"&&parseInt(String(r.equipoId),10)===+equipoId&&r.fecha>=fechaDesde&&r.fecha<=fechaHasta);
+    if(afectadas.length>0){
+      await Promise.all(afectadas.map(r=>supa.from("reservas").update({estado:"cancelado",cancel_tipo:"bloqueo_mantenimiento"}).eq("id",r.id)));
+      setReservas(rs=>rs.map(r=>afectadas.find(a=>a.id===r.id)?{...r,estado:"cancelado",cancelTipo:"bloqueo_mantenimiento"}:r));
+      const eq=equipos.find(e=>e.id===+equipoId);
+      const eqNombre=eq?.nombre||"Equipo";
+      // Generar links WA para notificar a cada cliente afectado
+      afectadas.forEach(r=>{
+        const telLimpio=r.clienteTel?r.clienteTel.replace(/\D/g,""):"";
+        const tel=telLimpio&&!telLimpio.startsWith("54")?"54"+telLimpio:telLimpio;
+        if(tel){
+          const msg=encodeURIComponent(`Hola ${r.clienteNombre}! Lamentablemente debemos cancelar tu reserva del ${fmtFull(r.fecha)} del equipo ${eqNombre} por mantenimiento programado. Disculpá los inconvenientes. Podés consultar por otras fechas. Saludos, GC Equipamiento`);
+          window.open("https://wa.me/"+tel+"?text="+msg,"_blank");
+        }
+      });
+      showToast(`Bloqueo creado. ${afectadas.length} reserva${afectadas.length>1?"s canceladas":" cancelada"}.`);
+    } else {
+      showToast("Bloqueo creado");
+    }
+    setBloqueoForm({equipoId:"",fechaDesde:"",fechaHasta:"",motivo:""});
+    setModal(null);
+  };
+  const eliminarBloqueo=async id=>{
+    const{error}=await supa.from("bloqueos").delete().eq("id",id);
+    if(error){showToast("Error: "+error.message);return;}
+    setBloqueos(bs=>bs.filter(b=>b.id!==id));showToast("Bloqueo eliminado");
   };
   const guardarEquipo=async()=>{
     if(!equipoForm.nombre||!equipoForm.precio){showToast("Nombre y precio requeridos");return;}
@@ -1163,9 +1209,12 @@ function App(){
           {DIAS.map(d=><div key={d} style={{background:"var(--dark)",color:"#8A7A6A",textAlign:"center",fontSize:".65rem",fontWeight:700,padding:".35rem 0",textTransform:"uppercase"}}>{d}</div>)}
           {diasEnMes().map((c,i)=>{
             const ds=dots(c.date),isToday=c.date===fmtHoy,isSel=c.date===selDay;
+            const bloqueosDelDia=bloqueos.filter(b=>c.date>=b.fechaDesde&&c.date<=b.fechaHasta);
+            const hayBloqueo=bloqueosDelDia.length>0;
             return(
-              <div key={i} onClick={()=>setSelDay(c.date)} style={{background:isSel?"rgba(176,125,78,.12)":isToday?"rgba(176,125,78,.08)":"#fff",minHeight:68,padding:".3rem .28rem",cursor:"pointer",opacity:c.other?.3:1,outline:isSel?"2px solid var(--bronze)":"none",outlineOffset:-1}}>
+              <div key={i} onClick={()=>setSelDay(c.date)} style={{background:isSel?"rgba(176,125,78,.12)":hayBloqueo?"rgba(185,28,28,.06)":isToday?"rgba(176,125,78,.08)":"#fff",minHeight:68,padding:".3rem .28rem",cursor:"pointer",opacity:c.other?.3:1,outline:isSel?"2px solid var(--bronze)":hayBloqueo?"1px solid #FECACA":"none",outlineOffset:-1}}>
                 <div style={{fontSize:".78rem",fontWeight:600,width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",background:isToday?"var(--bronze)":"transparent",color:isToday?"#fff":"var(--dark)",borderRadius:"50%"}}>{c.day}</div>
+                {hayBloqueo&&<div style={{fontSize:".55rem",color:"#b91c1c",fontWeight:700,lineHeight:1,marginTop:1}}>🔒 {bloqueosDelDia.map(b=>equipos.find(e=>e.id===b.equipoId)?.nombre?.split(" ")[0]||"").filter(Boolean).join(",")}</div>}
                 <div style={{display:"flex",flexWrap:"wrap",gap:2,marginTop:2}}>{ds.map((col,j)=><div key={j} style={{width:7,height:7,borderRadius:"50%",background:col}}/>)}</div>
               </div>
             );
@@ -1406,6 +1455,28 @@ function App(){
                 </div>
               );
             })}
+          </div>
+          {/* BLOQUEOS */}
+          <div style={{marginTop:"2rem"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:".9rem",flexWrap:"wrap",gap:".5rem"}}>
+              <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"1.2rem",color:"#b91c1c",margin:0}}>🔒 Bloqueos por mantenimiento</h3>
+              {btn("+ Nuevo bloqueo",()=>{setBloqueoForm({equipoId:"",fechaDesde:"",fechaHasta:"",motivo:""});setModal("bloqueo");},"#b91c1c")}
+            </div>
+            {bloqueos.length===0?(<div style={{color:"var(--mid)",fontSize:".9rem",padding:".8rem 0"}}>Sin bloqueos activos.</div>):(
+              <div style={{display:"flex",flexDirection:"column",gap:".6rem"}}>
+                {bloqueos.map(b=>{const eqN=equipos.find(e=>e.id===b.equipoId)?.nombre||"Equipo";return(
+                  <div key={b.id} style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:12,padding:".75rem 1rem",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:".5rem"}}>
+                    <div>
+                      <span style={{fontWeight:700,color:"#b91c1c"}}>{eqN}</span>
+                      <span style={{color:"var(--mid)",fontSize:".85rem",margin:"0 .5rem"}}>·</span>
+                      <span style={{fontSize:".85rem"}}>{fmtVis(b.fechaDesde)} → {fmtVis(b.fechaHasta)}</span>
+                      {b.motivo&&<span style={{fontSize:".8rem",color:"var(--mid)",marginLeft:".5rem"}}>— {b.motivo}</span>}
+                    </div>
+                    <button onClick={()=>eliminarBloqueo(b.id)} style={{padding:".2rem .6rem",fontSize:".72rem",borderRadius:6,border:"none",background:"#FEE2E2",color:"#b91c1c",cursor:"pointer"}}>Eliminar</button>
+                  </div>
+                );})}
+              </div>
+            )}
           </div>
         </>)}
 
@@ -1725,8 +1796,8 @@ function App(){
 
       </main>
 
-      {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={null} tarifas={tarifas} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
-      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={editRes.id} tarifas={tarifas} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios" onSubmitSerie={editRes?.serieId?()=>setModalSerie("editar"):null}/>}
+      {modal==="nueva"&&<FormReserva titulo="Nueva Reserva" form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={null} tarifas={tarifas} bloqueos={bloqueos} onSubmit={guardarReserva} onCancel={()=>setModal(null)} submitLabel="Guardar reserva"/>}
+      {modal==="editar"&&editRes&&<FormReserva titulo={`Editar — ${editRes.clienteNombre}`} form={form} fv={fv} promos={promos} combos={combos} equipos={equipos} reservas={reservas} excludeId={editRes.id} tarifas={tarifas} bloqueos={bloqueos} onSubmit={guardarEdicion} onCancel={()=>{setModal(null);setEditRes(null);setForm(FDEF);}} submitLabel="Guardar cambios" onSubmitSerie={editRes?.serieId?()=>setModalSerie("editar"):null}/>}
 
       {modal==="equipo"&&(
         <Overlay onClose={()=>{setModal(null);setEditEquipo(null);}} maxW={420}>
@@ -1845,6 +1916,53 @@ function App(){
           <div style={S.mf}>
             <button onClick={()=>{setModal(null);setEditCombo(null);}} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
             {btn(editCombo?"Guardar cambios":"Crear combo",guardarCombo,"var(--teal)")}
+          </div>
+        </Overlay>
+      )}
+
+      {modal==="bloqueo"&&(
+        <Overlay onClose={()=>setModal(null)} maxW={460}>
+          <div style={{...S.mh,position:"sticky",top:0,zIndex:10,background:"#b91c1c"}}>🔒 Bloquear equipo por mantenimiento <CloseBtn onClose={()=>setModal(null)}/></div>
+          <div style={{padding:"1.2rem"}}>
+            <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:10,padding:".75rem",marginBottom:"1rem",fontSize:".82rem",color:"#7f1d1d",lineHeight:1.5}}>
+              ⚠️ Al crear el bloqueo, las reservas activas en ese rango serán <strong>canceladas automáticamente</strong> y se abrirán los chats de WhatsApp para notificar a cada cliente.
+            </div>
+            <div style={S.fg}>
+              <label style={S.lbl}>Equipo</label>
+              <select value={bloqueoForm.equipoId} onChange={e=>setBloqueoForm(f=>({...f,equipoId:e.target.value}))} style={S.inp}>
+                <option value="">-- Seleccioná un equipo --</option>
+                {equipos.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}
+              </select>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:".8rem"}}>
+              <div style={S.fg}>
+                <label style={S.lbl}>Desde</label>
+                <input type="date" value={bloqueoForm.fechaDesde} onChange={e=>setBloqueoForm(f=>({...f,fechaDesde:e.target.value}))} style={S.inp}/>
+              </div>
+              <div style={S.fg}>
+                <label style={S.lbl}>Hasta</label>
+                <input type="date" value={bloqueoForm.fechaHasta} onChange={e=>setBloqueoForm(f=>({...f,fechaHasta:e.target.value}))} style={S.inp}/>
+              </div>
+            </div>
+            <div style={S.fg}>
+              <label style={S.lbl}>Motivo (opcional)</label>
+              <input value={bloqueoForm.motivo} onChange={e=>setBloqueoForm(f=>({...f,motivo:e.target.value}))} placeholder="ej: Service, reparación..." style={S.inp}/>
+            </div>
+            {bloqueoForm.equipoId&&bloqueoForm.fechaDesde&&bloqueoForm.fechaHasta&&(()=>{
+              const afectadas=reservas.filter(r=>r.estado!=="cancelado"&&parseInt(String(r.equipoId),10)===+bloqueoForm.equipoId&&r.fecha>=bloqueoForm.fechaDesde&&r.fecha<=bloqueoForm.fechaHasta);
+              return afectadas.length>0?(
+                <div style={{background:"#FEF2F2",border:"1.5px solid #FECACA",borderRadius:10,padding:".75rem",fontSize:".82rem",color:"#b91c1c"}}>
+                  <strong>⚠️ {afectadas.length} reserva{afectadas.length>1?"s":""}  activa{afectadas.length>1?"s":""} serán canceladas:</strong>
+                  <ul style={{margin:".4rem 0 0",padding:"0 0 0 1.2rem"}}>
+                    {afectadas.map(r=><li key={r.id}>{fmtVis(r.fecha)} — {r.clienteNombre}</li>)}
+                  </ul>
+                </div>
+              ):null;
+            })()}
+          </div>
+          <div style={S.mf}>
+            <button onClick={()=>setModal(null)} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
+            <button onClick={crearBloqueo} style={{padding:".5rem 1.2rem",borderRadius:8,border:"none",background:"#b91c1c",color:"#fff",cursor:"pointer",fontSize:".9rem",fontWeight:700}}>🔒 Crear bloqueo</button>
           </div>
         </Overlay>
       )}
