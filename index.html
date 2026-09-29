@@ -547,7 +547,7 @@ function SeccionLiquidacion({reservas,mesKey,showToast,btn}){
     </div>
   </>);
 }
-function VistaPublica({reservas,combos,equipos,promos,tarifas,onVolver}){
+function VistaPublica({reservas,combos,equipos,promos,tarifas,bloqueos,onVolver}){
   const [paso,setPaso]=useState(1);
   const [calMes,setCalMes]=useState({y:hoy.getFullYear(),m:hoy.getMonth()});
   const [modoPublico,setModoPublico]=useState("fecha");
@@ -1224,7 +1224,7 @@ function App(){
     );
   };
 
-  if(rol==="publico")return(<VistaPublica reservas={reservas} combos={combos} equipos={equipos} promos={promos} tarifas={tarifas} onVolver={()=>setRol(null)}/>);
+  if(rol==="publico")return(<VistaPublica reservas={reservas} combos={combos} equipos={equipos} promos={promos} tarifas={tarifas} bloqueos={bloqueos} onVolver={()=>setRol(null)}/>);
 
   if(!rol)return(
     <div style={{minHeight:"100vh",background:"var(--dark)",display:"flex",alignItems:"center",justifyContent:"center",padding:"1rem"}}>
