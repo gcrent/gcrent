@@ -873,6 +873,7 @@ function App(){
   const [equipoForm,setEquipoForm]=useState({nombre:"",emoji:"🔧",desc:"",precio:"",maquinaId:"",grupoTarifa:""});
   const [comboForm,setComboForm]=useState({nombre:"",equipoIds:[],desc:"",precio:""});
   const [promoForm,setPromoForm]=useState({equipoId:"1",titulo:"",descuento:"10",fechaDesde:"",fechaHasta:""});
+  const [editPromo,setEditPromo]=useState(null);
   const FDEF={clienteNombre:"",clienteApellido:"",clienteEmail:"",clienteTel:"",equipoId:"1",comboId:"",usarCombo:false,fecha:"",horaEntrega:"",horaRetiro:"",monto:"",senia:"",direccion:"",localidad:"",tarifaTransporte:"",repeticion:"none",observaciones:"",repeticionHasta:""};
   const [form,setForm]=useState(FDEF);
   const fv=useCallback((k,v)=>setForm(f=>({...f,[k]:v})),[]);
@@ -1069,6 +1070,13 @@ function App(){
     const{error}=await supa.from("promos").insert(pToDb(nueva));
     if(error){showToast("Error: "+error.message);return;}
     setPromos(p=>[...p,nueva]);setModal(null);setPromoForm({equipoId:"1",titulo:"",descuento:"10",fechaDesde:"",fechaHasta:""});showToast("Promo creada");
+  };
+  const guardarEditPromo=async()=>{
+    if(!promoForm.titulo){showToast("Título requerido");return;}
+    const upd={...editPromo,equipoId:+promoForm.equipoId,titulo:promoForm.titulo,descuento:+promoForm.descuento,fechaDesde:promoForm.fechaDesde||null,fechaHasta:promoForm.fechaHasta||null};
+    const{error}=await supa.from("promos").update(pToDb(upd)).eq("id",upd.id);
+    if(error){showToast("Error: "+error.message);return;}
+    setPromos(ps=>ps.map(x=>x.id===upd.id?upd:x));setModal(null);setEditPromo(null);setPromoForm({equipoId:"1",titulo:"",descuento:"10",fechaDesde:"",fechaHasta:""});showToast("Promo actualizada");
   };
   const togglePromo=async p=>{const{error}=await supa.from("promos").update({activa:!p.activa}).eq("id",p.id);if(error){showToast("Error");return;}setPromos(ps=>ps.map(x=>x.id===p.id?{...x,activa:!x.activa}:x));};
 
@@ -1621,6 +1629,7 @@ function App(){
                   {(p.fechaDesde||p.fechaHasta)&&<div style={{fontSize:".72rem",color:"var(--mid)",marginTop:".25rem"}}>📅 {p.fechaDesde?fmtVis(p.fechaDesde):"inicio"} → {p.fechaHasta?fmtVis(p.fechaHasta):"sin vencimiento"}{!promoVigenteHoy(p)&&p.activa&&<span style={{marginLeft:".4rem",color:"var(--red)",fontWeight:700}}>(fuera de rango)</span>}</div>}
                 </div>
                 <button onClick={()=>togglePromo(p)} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:p.activa?"var(--green)":"var(--sand)",color:p.activa?"#fff":"var(--mid)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>{p.activa?"Activa":"Inactiva"}</button>
+                <button onClick={()=>{setEditPromo(p);setPromoForm({equipoId:String(p.equipoId),titulo:p.titulo,descuento:String(p.descuento),fechaDesde:p.fechaDesde||"",fechaHasta:p.fechaHasta||""});setModal("promo");}} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"#EDE9FE",color:"#4C1D95",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Editar</button>
                 <button onClick={async()=>{if(!window.confirm("¿Eliminar esta promo?"))return;const{error}=await supa.from("promos").delete().eq("id",p.id);if(!error)setPromos(ps=>ps.filter(x=>x.id!==p.id));}} style={{padding:".35rem .8rem",borderRadius:8,border:"none",background:"#FEE2E2",color:"var(--red)",cursor:"pointer",fontSize:".85rem",fontWeight:600}}>Eliminar</button>
               </div>
             </div>
@@ -1907,8 +1916,8 @@ function App(){
       )}
 
       {modal==="promo"&&(
-        <Overlay onClose={()=>setModal(null)} maxW={420}>
-          <div style={S.mh}>Nueva Promoción <CloseBtn onClose={()=>setModal(null)}/></div>
+        <Overlay onClose={()=>{setModal(null);setEditPromo(null);setPromoForm({equipoId:"1",titulo:"",descuento:"10",fechaDesde:"",fechaHasta:""},);}} maxW={420}>
+          <div style={S.mh}>{editPromo?"Editar Promoción":"Nueva Promoción"} <CloseBtn onClose={()=>{setModal(null);setEditPromo(null);setPromoForm({equipoId:"1",titulo:"",descuento:"10",fechaDesde:"",fechaHasta:""});}} /></div>
           <div style={{padding:"1.2rem"}}>
             <div style={S.fg}><label style={S.lbl}>Equipo</label><select value={promoForm.equipoId} onChange={e=>setPromoForm(f=>({...f,equipoId:e.target.value}))} style={S.inp}>{equipos.map(e=><option key={e.id} value={e.id}>{e.emoji} {e.nombre}</option>)}</select></div>
             <div style={S.fg}><label style={S.lbl}>Título</label><input value={promoForm.titulo} onChange={e=>setPromoForm(f=>({...f,titulo:e.target.value}))} placeholder="Ej: HIFU 20% OFF" style={S.inp}/></div>
@@ -1921,7 +1930,7 @@ function App(){
           </div>
           <div style={S.mf}>
             <button onClick={()=>setModal(null)} style={{padding:".5rem 1rem",borderRadius:8,border:"1.5px solid var(--sand)",background:"transparent",color:"var(--mid)",cursor:"pointer",fontSize:".9rem",fontWeight:600}}>Cancelar</button>
-            {btn("Crear promo",crearPromo,"var(--purple)")}
+            {editPromo?btn("Guardar cambios",guardarEditPromo,"var(--purple)"):btn("Crear promo",crearPromo,"var(--purple)")}
           </div>
         </Overlay>
       )}
